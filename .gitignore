@@ -1,4 +1,9 @@
 
 # Do not track these
 
+.ipynb_checkpoints/
 .idea/
+Input/
+Output/
+Source/.ipynb_checkpoints/
+Source/test.py
