@@ -1,11 +1,14 @@
 #%% [markdown]
 # Safe to eat or deadly poisonous?
 ### An analysis on mushroom classification by Lorenzo Santolini
-#%% [markdown]
-#### Code snippet for google colab
-This is a little code to import automatically the dataset into google colab. Provide your kaggle's API key (profile section) when file requested
-#%%
 
+#%% [markdown]
+'''This is a little code to import automatically the dataset into google colab. 
+Provide your kaggle's API key (profile section) when file requested
+'''
+#### Code snippet for google colab
+
+#%%
 # Little code snippet to import on Google Colab the dataset
 '''
 !pip install -U -q kaggle
@@ -89,6 +92,7 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split, KFold, StratifiedKFold, GridSearchCV, learning_curve
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import log_loss, confusion_matrix, roc_curve
 
 import plotly
 import plotly.plotly as py
@@ -694,16 +698,20 @@ def print_gridcv_scores(grid_search, n=5):
     if not hasattr(grid_search, 'best_score_'):
         raise KeyError('grid_search is not fitted.')
     
+    t = PrettyTable()
+
     print("Best grid scores on validation set:")
     indexes = np.argsort(grid_search.cv_results_['mean_test_score'])[::-1][:n]
     means = grid_search.cv_results_['mean_test_score'][indexes]
     stds = grid_search.cv_results_['std_test_score'][indexes]
     params = np.array(grid_search.cv_results_['params'])[indexes]
     
+    t.field_names = ['Score'] + [f for f in params[0].keys()] 
     for mean, std, params in zip(means, stds, params):
-        print("%0.3f (+/-%0.03f) for %r" % (mean, std * 2, params))
-        
-        
+        row=["%0.3f (+/-%0.03f)" % (mean, std * 2)] + [p for p in params.values()]
+        t.add_row(row)
+    print(t)
+               
 @watcher
 def param_tune_grid_cv(clf, params, X_train, y_train, cv):
     pipeline = Pipeline([('clf', clf)])
@@ -715,7 +723,7 @@ def param_tune_grid_cv(clf, params, X_train, y_train, cv):
                                return_train_score=True)
     grid_search.fit(X_train, y_train)
     return grid_search
-    
+   
 
 def score(clfs, datasets):
     scores = []
@@ -724,12 +732,19 @@ def score(clfs, datasets):
     return scores
 
 #%%
-def get_color_with_opacity(color, opacity):
+def hexToRGBA(hex, alpha):
+    r = int(hex[1:3], 16)
+    g = int(hex[3:5], 16)
+    b = int(hex[5:], 16)
+
+    if alpha:
+        return "rgba(" + str(r) + ", " + str(g) + ", " + str(b) + ", " + str(alpha) + ")"
+    else:
+        return "rgb(" + str(r) + ", " + str(g) + ", " + str(b) + ")"
     
-    return "#" + hex(opacity * 255)[2:] + color
 
 # partially based on https://scikit-learn.org/stable/auto_examples/model_selection/plot_learning_curve.html
-def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=np.linspace(.1, 1.0, 5)):
+def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=np.linspace(.008, 1.0, 5)):
     """
     Generate a simple plot of the test and training learning curve.
 
@@ -799,7 +814,7 @@ def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=
         ),
         line = dict(
             width = 0.1,
-            color = get_color_with_opacity(PLOTLY_COLORS[0], 0.4),
+            color = hexToRGBA(PLOTLY_COLORS[0], 0.4),
         ),
     )
     trace2 = go.Scatter(
@@ -814,7 +829,7 @@ def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=
         ),
         line = dict(
             width = 0.1,
-            color = get_color_with_opacity(PLOTLY_COLORS[0], 0.4),
+            color = hexToRGBA(PLOTLY_COLORS[0], 0.4),
         ),
     )
     trace3 = go.Scatter(
@@ -838,7 +853,7 @@ def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=
         ),
         line = dict(
             width = 0.1,
-            color = get_color_with_opacity(PLOTLY_COLORS[1], 0.4),
+            color = hexToRGBA(PLOTLY_COLORS[1], 0.4),
         ),
     )
     trace5 = go.Scatter(
@@ -853,7 +868,7 @@ def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=
         ),
         line = dict(
             width = 0.1,
-            color = get_color_with_opacity(PLOTLY_COLORS[1], 0.4),
+            color = hexToRGBA(PLOTLY_COLORS[1], 0.4),
         ),
     )
     trace6 = go.Scatter(
@@ -884,6 +899,7 @@ def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=
     fig = go.Figure(data=data, layout=layout)
     return iplot(fig, filename=title)
 
+
 #%% 
 kf = StratifiedKFold(n_splits=10, random_state=RANDOM_SEED)
 clf_lr = LogisticRegression(random_state=RANDOM_SEED)
@@ -891,8 +907,11 @@ clf_lr_balanced = LogisticRegression(random_state=RANDOM_SEED, class_weight="bal
 
 #%%
 
+print("Full dataset cv:")
 gs_full = param_tune_grid_cv(clf_lr, LOGISTIC_REGRESSION_PARAMS, X_train, y_train, kf)
+print("\nDataset projected on first 9 pc cv:")
 gs_pc = param_tune_grid_cv(clf_lr, LOGISTIC_REGRESSION_PARAMS, X_train_pc, y_train_pc, kf)
+print("\nFull dataset with dropped values took:")
 gs_drop = param_tune_grid_cv(clf_lr, LOGISTIC_REGRESSION_PARAMS, X_train_drop, y_train_drop, kf)
 gss = [gs_full, gs_pc, gs_drop]
 
@@ -902,9 +921,9 @@ test_results = score(gss, [(X_test, y_test), (X_test_pc, y_test_pc), (X_test_dro
 
 print("Full dataset cv:")
 gs_full_balanced = param_tune_grid_cv(clf_lr_balanced, LOGISTIC_REGRESSION_PARAMS, X_train, y_train, kf)
-print("Dataset projected on first 9 pc cv:")
+print("\nDataset projected on first 9 pc cv:")
 gs_pc_balanced = param_tune_grid_cv(clf_lr_balanced, LOGISTIC_REGRESSION_PARAMS, X_train_pc, y_train_pc, kf)
-print("Full dataset with dropped values took:")
+print("\nFull dataset with dropped values took:")
 gs_drop_balanced = param_tune_grid_cv(clf_lr_balanced, LOGISTIC_REGRESSION_PARAMS, X_train_drop, y_train_drop, kf)
 gss_balanced = [gs_full_balanced, gs_pc_balanced, gs_drop_balanced]
 
@@ -916,15 +935,42 @@ dataset_strings = ["full dataset", "dataset with first 9 principal components", 
 method_strings = ["without any balancing", "using balanced class weights"]
 
 t = PrettyTable()
+t.field_names = ["Score", "Dataset", "Type"]
 
-result_strings = dict()
+result_row = []
 for ms, results in zip(method_strings, [test_results, test_results_balanced]):
     for ds, res in zip(dataset_strings, results):
-        string = "%.3f" % res + "     " + ds + " " + ms
-        result_strings[string] = res
+        result_row.append(["%.3f" % res, ds, ms])
         
-result_strings = sorted(result_strings.items(), key=lambda kv: kv[1], reverse=True)
-print("F1 score  dataset and method")
-for k, _ in result_strings:
-    print(k)
+result_row = sorted(result_row, key=lambda kv: kv[0], reverse=True)
+
+for k in result_row:
+    t.add_row(k)
+
+t.title = "F1 score  dataset and method"
+print(t)
+
+#%% [markdown]
+So the dataset we will use for all the classification methods will be 
+the one with missing values removed.
+
 #%%
+print_gridcv_scores(gs_drop)
+
+#%%
+gs_drop_score = gs_drop.score(X_test_drop, y_test_drop)
+y_pred_lr = gs_drop.predict(X_test_drop)
+
+cm_lr_drop = confusion_matrix(y_test_drop, y_pred_lr)
+t = PrettyTable()
+t.add_row(["True Edible", cm_lr_drop[0][0], cm_lr_drop[0][1]])
+t.add_row(["True Poisonous", cm_lr_drop[1][0], cm_lr_drop[1][1]])
+t.field_names = [" ", "Predicted Edible", "Predicted Poisonous"]
+print(t)
+
+cm_lr_drop = cm_lr_drop.astype('float') / cm_lr_drop.sum(axis=1)[:, np.newaxis] # normalize the confusion matrix
+cm_df_drop = pd.DataFrame(cm_lr_drop.round(3), index=["True edible", "True Poisonous"], columns=["Predicted edible", "Predicted poisonous"])
+cm_df
+
+#%% 
+plot_learning_curve(gs_drop.best_estimator_, "Learning Curve of Logistic Regression", X_train_drop, y_train_drop, cv=5)
