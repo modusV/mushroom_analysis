@@ -58,6 +58,13 @@ SVM_PARAMS = [
     'clf__gamma': [0.01, 0.1, 1, 10, 100],
 }]
 
+RANDOM_FOREST_PARAMS = {
+    'clf__max_depth': [25, 50, 75],
+    'clf__max_features': ["sqrt", "log2"], # same as auto
+    'clf__criterion': ['gini', 'entropy'],
+    'clf__n_estimators': [100, 300, 500, 1000]
+}
+
 
 #%% [markdown]
 ## Introduction
@@ -104,7 +111,9 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split, KFold, StratifiedKFold, GridSearchCV, learning_curve
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss, confusion_matrix, roc_curve
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
+from sklearn.naive_bayes import GaussianNB
 
 import plotly
 import plotly.plotly as py
@@ -699,9 +708,9 @@ Bagging, boosting and ensemble learning models
 
 #%%
 
-X_train, X_test, y_train, y_test = train_test_split(X_scaled_data, y_data, test_size=0.15, random_state=RANDOM_SEED)
-X_train_pc, X_test_pc, y_train_pc, y_test_pc = train_test_split(X_df_reduced, y_data, test_size=0.15, random_state=RANDOM_SEED)
-X_train_drop, X_test_drop, y_train_drop, y_test_drop = train_test_split(X_scaled_drop_data, y_drop_data, test_size=0.15, random_state=RANDOM_SEED)
+X_train, X_test, y_train, y_test = train_test_split(X_scaled_data, y_data, test_size=0.2, random_state=RANDOM_SEED)
+X_train_pc, X_test_pc, y_train_pc, y_test_pc = train_test_split(X_df_reduced, y_data, test_size=0.2, random_state=RANDOM_SEED)
+X_train_drop, X_test_drop, y_train_drop, y_test_drop = train_test_split(X_scaled_drop_data, y_drop_data, test_size=0.2, random_state=RANDOM_SEED)
 
 #%% [markdown]
 The first method used will be Logistic Regression, and we will tune its parameters
@@ -746,6 +755,7 @@ def score(clfs, datasets):
     scores = []
     for c, (X_test, y_test) in zip(clfs, datasets):
         scores.append(c.score(X_test, y_test))
+
     return scores
 
 #%%
@@ -758,7 +768,7 @@ def hexToRGBA(hex, alpha):
         return "rgba(" + str(r) + ", " + str(g) + ", " + str(b) + ", " + str(alpha) + ")"
     else:
         return "rgb(" + str(r) + ", " + str(g) + ", " + str(b) + ")"
-    
+
 
 # partially based on https://scikit-learn.org/stable/auto_examples/model_selection/plot_learning_curve.html
 def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=np.linspace(.008, 1.0, 5)):
@@ -920,7 +930,7 @@ def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=
 def print_confusion_matrix(gs, X_test, y_test):
 
     gs_score = gs.score(X_test, y_test)
-    y_pred = gs.predict(X_test_drop)
+    y_pred = gs.predict(X_test)
 
     cm = confusion_matrix(y_test, y_pred)
     t = PrettyTable()
@@ -932,6 +942,10 @@ def print_confusion_matrix(gs, X_test, y_test):
     cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis] # normalize the confusion matrix
     cm_df = pd.DataFrame(cm.round(3), index=["True edible", "True Poisonous"], columns=["Predicted edible", "Predicted poisonous"])
     cm_df
+
+def print_raw_score(clf, X_test, y_test):
+    print("Score achieved by NB: %0.3f" % (score([clf], [(X_test, y_test)])[0]))
+
 
 #%% 
 kf = StratifiedKFold(n_splits=10, random_state=RANDOM_SEED)
@@ -1001,11 +1015,36 @@ plot_learning_curve(gs_drop.best_estimator_, "Learning Curve of Logistic Regress
 
 #%%
 clf_svm = SVC(random_state=RANDOM_SEED)
-gs_full = param_tune_grid_cv(clf_svm, SVM_PARAMS, X_train, y_train, kf)
-print_gridcv_scores(gs_full, n=5)
-svm_results = score(gs_full, [(X_test, y_test)])
-plot_learning_curve(gs_full.best_estimator_, "Learning curve of SVM", X_train, y_train, cv=5)
+gs_pc_svm = param_tune_grid_cv(clf_svm, SVM_PARAMS, X_train_pc, y_train_pc, kf)
+print_gridcv_scores(gs_pc_svm, n=5)
+
+#%%
+plot_learning_curve(gs_pc_svm.best_estimator_, "Learning curve of SVM", X_train_pc, y_train_pc, cv=5)
+
+#%%
+print_confusion_matrix(gs_pc_svm, X_test_pc, y_test_pc)
+#%% [markdown]
+We can notice that most of the times, the only mistakes are
+poisonous mushrooms classified as edible. These mistakes weight
+must be much higher with respect to an edible mushroom classified as
+poisonous, because there is not any danger in that case.
+
+#%%
+clf_nb = GaussianNB()
+clf_nb.fit(X_train, y_train)
+print_raw_score(clf_nb, X_test, y_test)
+print_confusion_matrix(clf_nb, X_test, y_test)
 
 
 #%%
+plot_learning_curve(clf_nb, "Learning curve of GaussianNB", X_train, y_train, cv=5)
 
+#%%
+
+clf_pc_rf = RandomForestClassifier(random_state=RANDOM_SEED)
+gs_pc_rf = param_tune_grid_cv(clf_pc_rf, RANDOM_FOREST_PARAMS, X_train_pc, y_train_pc, kf)
+print_gridcv_scores(gs_pc_rf, n = 5)
+
+
+
+#%%
