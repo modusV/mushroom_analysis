@@ -3,9 +3,9 @@
 ### An analysis on mushroom classification by Lorenzo Santolini
 
 #%% [markdown]
-'''This is a little code to import automatically the dataset into google colab. 
+This is a little code to import automatically the dataset into google colab. 
 Provide your kaggle's API key (profile section) when file requested
-'''
+
 #### Code snippet for google colab
 
 #%%
@@ -46,6 +46,17 @@ LOGISTIC_REGRESSION_PARAMS = {
     'clf__C': [0.01, 0.1, 1, 10, 100], # smaller value, stronger regularization
     'clf__penalty': ['l2', 'l1']
 }
+
+SVM_PARAMS = [
+{
+    'clf__kernel': ['linear'],
+    'clf__C': [0.1, 1, 10, 100],
+}, 
+{
+    'clf__kernel': ['rbf'],
+    'clf__C': [0.01, 0.1, 1, 10, 100],
+    'clf__gamma': [0.01, 0.1, 1, 10, 100],
+}]
 
 
 #%% [markdown]
@@ -656,6 +667,11 @@ TODO: give some impressions on the clustered data
 Using K-means we are able to separate two classes using the two components with maximum variance.
 
 #%% [markdown]
+
+## Classification
+Now we are going to explore different classification methods, and see in the end the one that performs better
+
+#%% [markdown]
 Now, before starting the classification phase, let's see what kind of pre-processed
 data it is better to use to achieve the best classification possible.
 Due to the fact that our dataset is pretty small, probably the dimensionality reduction
@@ -974,3 +990,6 @@ cm_df
 
 #%% 
 plot_learning_curve(gs_drop.best_estimator_, "Learning Curve of Logistic Regression", X_train_drop, y_train_drop, cv=5)
+
+#%% [markdown]
+### Support vector machine
