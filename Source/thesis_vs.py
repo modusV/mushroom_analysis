@@ -65,6 +65,12 @@ RANDOM_FOREST_PARAMS = {
     'clf__n_estimators': [100, 300, 500, 1000]
 }
 
+KNN_PARAMS = {
+    'clf__n_neighbors': [5, 15, 25, 35, 45, 55, 65],
+    'clf__weights': ['uniform', 'distance'],
+    'clf__p': [1, 2, 10]
+}
+
 
 #%% [markdown]
 ## Introduction
@@ -114,6 +120,7 @@ from sklearn.metrics import log_loss, confusion_matrix, roc_curve
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
 
 import plotly
 import plotly.plotly as py
@@ -943,10 +950,35 @@ def print_confusion_matrix(gs, X_test, y_test):
     cm_df = pd.DataFrame(cm.round(3), index=["True edible", "True Poisonous"], columns=["Predicted edible", "Predicted poisonous"])
     cm_df
 
+
 def print_raw_score(clf, X_test, y_test):
     print("Score achieved by NB: %0.3f" % (score([clf], [(X_test, y_test)])[0]))
 
 
+def plot_feature_importance(feature_importance, title):
+    trace1 = go.Bar(
+        x=feature_importance[:, 0],
+        y=feature_importance[:, 1],
+        marker = dict(color = PLOTLY_COLORS[0]),
+        opacity=PLOTLY_OPACITY,
+        name='Feature importance'
+    )
+    data = [trace1]
+    layout = go.Layout(
+        title=title,
+        autosize=True,
+        margin=go.layout.Margin(l=50, r=100, b=150),
+        xaxis=dict(
+            title='feature',
+            tickangle=30
+        ),
+        yaxis=dict(
+            title='feature importance',
+            automargin=True,
+        ),
+    )
+    fig = go.Figure(data=data, layout=layout)
+    return iplot(fig, filename=title)
 #%% 
 kf = StratifiedKFold(n_splits=5, random_state=RANDOM_SEED)
 clf_lr = LogisticRegression(random_state=RANDOM_SEED)
@@ -1066,9 +1098,15 @@ plot_learning_curve(gs_pc_rf.best_estimator_, "Learning curve of Random Forest C
                     np.concatenate((y_train_pc, y_test_pc)), 
                     cv=5)
 
+#%%
+feature_importance = np.array(  sorted(zip(X_train_pc.columns, 
+                                gs_pc_rf.best_estimator_.named_steps['clf'].feature_importances_),
+                                key=lambda x: x[1], reverse=True))
+plot_feature_importance(feature_importance, "Feature importance in the random forest")
+
 
 #%%
-
+'''
 print("Full dataset cv:")
 gs_full = param_tune_grid_cv(clf_svm, SVM_PARAMS, X_train, y_train, kf)
 print("\nDataset projected on first 9 pc cv:")
@@ -1078,6 +1116,22 @@ gs_drop = param_tune_grid_cv(clf_svm, SVM_PARAMS, X_train_drop, y_train_drop, kf
 gss = [gs_full, gs_pc, gs_drop]
 
 test_results = score(gss, [(X_test, y_test), (X_test_pc, y_test_pc), (X_test_drop, y_test_drop)])
+'''
+#%%
+
+clf_knn = KNeighborsClassifier()
+gs_knn = param_tune_grid_cv(clf_knn, KNN_PARAMS, X_train_pc, y_train_pc, kf)
+print_gridcv_scores(gs_knn, n=5)
+
+#%%
+print_confusion_matrix(gs_knn, X_train_pc, y_train_pc)
+
+#%%
+
+plot_learning_curve(gs_knn.best_estimator_, "Learning curve of Random Forest Classifier", 
+                    np.concatenate((X_train_pc, X_test_pc)),
+                    np.concatenate((y_train_pc, y_test_pc)), 
+                    cv=5)
 
 
 
