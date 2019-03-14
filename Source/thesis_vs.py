@@ -948,9 +948,10 @@ def print_raw_score(clf, X_test, y_test):
 
 
 #%% 
-kf = StratifiedKFold(n_splits=10, random_state=RANDOM_SEED)
+kf = StratifiedKFold(n_splits=5, random_state=RANDOM_SEED)
 clf_lr = LogisticRegression(random_state=RANDOM_SEED)
 clf_lr_balanced = LogisticRegression(random_state=RANDOM_SEED, class_weight="balanced")
+
 
 #%%
 
@@ -976,6 +977,8 @@ gss_balanced = [gs_full_balanced, gs_pc_balanced, gs_drop_balanced]
 
 test_results_balanced = score(gss_balanced, [(X_test, y_test), (X_test_pc, y_test_pc), (X_test_drop, y_test_drop)])
 
+#%% 
+X_train.shape
 
 #%%
 dataset_strings = ["full dataset", "dataset with first 9 principal components", "dataset with dropped missing values"]
@@ -1008,7 +1011,10 @@ print_gridcv_scores(gs_drop)
 print_confusion_matrix(gs_drop, X_test_drop, y_test_drop)
 
 #%% 
-plot_learning_curve(gs_drop.best_estimator_, "Learning Curve of Logistic Regression", X_train_drop, y_train_drop, cv=5)
+plot_learning_curve(gs_drop.best_estimator_, "Learning Curve of Logistic Regression", 
+                    np.concatenate((X_train_drop, X_test_drop)),
+                    np.concatenate((y_train_drop, y_test_drop)), 
+                    cv=5)
 
 #%% [markdown]
 ### Support vector machine
@@ -1019,7 +1025,10 @@ gs_pc_svm = param_tune_grid_cv(clf_svm, SVM_PARAMS, X_train_pc, y_train_pc, kf)
 print_gridcv_scores(gs_pc_svm, n=5)
 
 #%%
-plot_learning_curve(gs_pc_svm.best_estimator_, "Learning curve of SVM", X_train_pc, y_train_pc, cv=5)
+plot_learning_curve(gs_pc_svm.best_estimator_, "Learning curve of SVM", 
+                    np.concatenate((X_train_pc, X_test_pc)),
+                    np.concatenate((y_train_pc, y_test_pc)),
+                    cv=5)
 
 #%%
 print_confusion_matrix(gs_pc_svm, X_test_pc, y_test_pc)
@@ -1037,13 +1046,38 @@ print_confusion_matrix(clf_nb, X_test, y_test)
 
 
 #%%
-plot_learning_curve(clf_nb, "Learning curve of GaussianNB", X_train, y_train, cv=5)
+plot_learning_curve(clf_nb, "Learning curve of GaussianNB", 
+                    np.concatenate((X_train, X_test), axis=0), 
+                    np.concatenate((y_train, y_test), axis=0), 
+                    cv=5)
 
 #%%
 
 clf_pc_rf = RandomForestClassifier(random_state=RANDOM_SEED)
 gs_pc_rf = param_tune_grid_cv(clf_pc_rf, RANDOM_FOREST_PARAMS, X_train_pc, y_train_pc, kf)
 print_gridcv_scores(gs_pc_rf, n = 5)
+
+#%%
+print_confusion_matrix(gs_pc_rf, X_test_pc, y_test_pc)
+
+#%%
+plot_learning_curve(gs_pc_rf.best_estimator_, "Learning curve of Random Forest Classifier", 
+                    np.concatenate((X_train_pc, X_test_pc)),
+                    np.concatenate((y_train_pc, y_test_pc)), 
+                    cv=5)
+
+
+#%%
+
+print("Full dataset cv:")
+gs_full = param_tune_grid_cv(clf_svm, SVM_PARAMS, X_train, y_train, kf)
+print("\nDataset projected on first 9 pc cv:")
+gs_pc = param_tune_grid_cv(clf_svm, SVM_PARAMS, X_train_pc, y_train_pc, kf)
+print("\nFull dataset with dropped values took:")
+gs_drop = param_tune_grid_cv(clf_svm, SVM_PARAMS, X_train_drop, y_train_drop, kf)
+gss = [gs_full, gs_pc, gs_drop]
+
+test_results = score(gss, [(X_test, y_test), (X_test_pc, y_test_pc), (X_test_drop, y_test_drop)])
 
 
 
