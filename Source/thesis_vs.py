@@ -104,6 +104,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split, KFold, StratifiedKFold, GridSearchCV, learning_curve
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss, confusion_matrix, roc_curve
+from sklearn.svm import SVC
 
 import plotly
 import plotly.plotly as py
@@ -916,6 +917,22 @@ def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=
     return iplot(fig, filename=title)
 
 
+def print_confusion_matrix(gs, X_test, y_test):
+
+    gs_score = gs.score(X_test, y_test)
+    y_pred = gs.predict(X_test_drop)
+
+    cm = confusion_matrix(y_test, y_pred)
+    t = PrettyTable()
+    t.add_row(["True Edible", cm[0][0], cm[0][1]])
+    t.add_row(["True Poisonous", cm[1][0], cm[1][1]])
+    t.field_names = [" ", "Predicted Edible", "Predicted Poisonous"]
+    print(t)
+
+    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis] # normalize the confusion matrix
+    cm_df = pd.DataFrame(cm.round(3), index=["True edible", "True Poisonous"], columns=["Predicted edible", "Predicted poisonous"])
+    cm_df
+
 #%% 
 kf = StratifiedKFold(n_splits=10, random_state=RANDOM_SEED)
 clf_lr = LogisticRegression(random_state=RANDOM_SEED)
@@ -974,22 +991,21 @@ the one with missing values removed.
 print_gridcv_scores(gs_drop)
 
 #%%
-gs_drop_score = gs_drop.score(X_test_drop, y_test_drop)
-y_pred_lr = gs_drop.predict(X_test_drop)
-
-cm_lr_drop = confusion_matrix(y_test_drop, y_pred_lr)
-t = PrettyTable()
-t.add_row(["True Edible", cm_lr_drop[0][0], cm_lr_drop[0][1]])
-t.add_row(["True Poisonous", cm_lr_drop[1][0], cm_lr_drop[1][1]])
-t.field_names = [" ", "Predicted Edible", "Predicted Poisonous"]
-print(t)
-
-cm_lr_drop = cm_lr_drop.astype('float') / cm_lr_drop.sum(axis=1)[:, np.newaxis] # normalize the confusion matrix
-cm_df_drop = pd.DataFrame(cm_lr_drop.round(3), index=["True edible", "True Poisonous"], columns=["Predicted edible", "Predicted poisonous"])
-cm_df
+print_confusion_matrix(gs_drop, X_test_drop, y_test_drop)
 
 #%% 
 plot_learning_curve(gs_drop.best_estimator_, "Learning Curve of Logistic Regression", X_train_drop, y_train_drop, cv=5)
 
 #%% [markdown]
 ### Support vector machine
+
+#%%
+clf_svm = SVC(random_state=RANDOM_SEED)
+gs_full = param_tune_grid_cv(clf_svm, SVM_PARAMS, X_train, y_train, kf)
+print_gridcv_scores(gs_full, n=5)
+svm_results = score(gs_full, [(X_test, y_test)])
+plot_learning_curve(gs_full.best_estimator_, "Learning curve of SVM", X_train, y_train, cv=5)
+
+
+#%%
+
