@@ -27,7 +27,7 @@ files.upload()
 #%% 
 # Constants
 PLOTLY_COLORS = ['#140DFF', '#FF0DE2']
-COLOR_PALETTE = ['#FF0DE2', '#BD0CE8', '#8B00FF', '#4D0FE8', '#140DFF']
+COLOR_PALETTE = ['#FF0DE2', '#140DFF', '#CAFFD0', '#C9E4E7', '#B4A0E5', '#904C77']
 COLORSCALE_HEATMAP = [         [0.0, 'rgb(70,0,252)'], 
                 [0.1111111111111111, 'rgb(78,0,252)'], 
                 [0.2222222222222222, 'rgb(90,0,252)'], 
@@ -1208,3 +1208,39 @@ classifiers = [gs_drop, gs_pc_svm, clf_nb, gs_pc_rf, gs_knn]
 classifier_names = ["Logistic Regression", "SVM", "GaussianNB", "Random Forest", "KNN"]
 auc_scores, roc_plot = plot_roc_curve(classifiers, classifier_names, "ROC curve", X_test, y_test)
 roc_plot
+
+#%% [markdown]
+
+To have a little bit more fun we will try one more thing. Due to the fact that some 
+charateristics of mushrooms are subjective, like odor for example, and some others need 
+more advanced analysis, like spore print, we will try to use our best-performing 
+classification algorithm on a reduced version of the dataset, keeping only the features 
+understendable by every person without the need of any specific equipment of knowledge.
+
+#%%
+pre_data.columns
+
+
+#%%
+data_vis = pre_data.drop(['odor', 'spore-print-color'], axis=1)
+data_vis = data_vis[data_vis['stalk-root'] != le_mapping['stalk-root']['?']]
+data_vis.shape
+
+
+#%%
+
+accs = []
+recalls = []
+precision = []
+results_table = pd.DataFrame(columns=["accuracy", "precision", "recall", "f1", "auc"])
+for (i, clf), name, auc in zip(enumerate(classifiers), classifier_names, auc_scores):
+    y_pred = clf.predict(X_test_pc)
+    row = []
+    row.append(accuracy_score(y_test_pc, y_pred))
+    row.append(precision_score(y_test_pc, y_pred))
+    row.append(recall_score(y_test_pc, y_pred))
+    row.append(f1_score(y_test_pc, y_pred))
+    row.append(auc)
+    row = ["%.3f" % r for r in row]
+    results_table.loc[name] = row
+results_table
