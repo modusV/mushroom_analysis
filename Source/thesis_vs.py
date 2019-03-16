@@ -25,7 +25,8 @@ files.upload()
 '''
 
 #%% 
-# Constants
+# Define all the constants that will be used
+
 PLOTLY_COLORS = ['#140DFF', '#FF0DE2']
 COLOR_PALETTE = ['#FF0DE2', '#140DFF', '#CAFFD0', '#C9E4E7', '#B4A0E5', '#904C77']
 COLORSCALE_HEATMAP = [         [0.0, 'rgb(70,0,252)'], 
@@ -43,7 +44,7 @@ RANDOM_SEED = 11
 
 LOGISTIC_REGRESSION_PARAMS = {
     'clf__solver': ['liblinear'],  # best for small datasets
-    'clf__C': [0.01, 0.1, 1, 10, 100], # smaller value, stronger regularization
+    'clf__C': [0.01, 0.1, 1, 10, 100], # smaller value, stronger regularization, like svm
     'clf__penalty': ['l2', 'l1']
 }
 
@@ -60,7 +61,7 @@ SVM_PARAMS = [
 
 RANDOM_FOREST_PARAMS = {
     'clf__max_depth': [25, 50, 75],
-    'clf__max_features': ["sqrt", "log2"], # same as auto
+    'clf__max_features': ["sqrt", "log2"], # sqrt is the same as auto
     'clf__criterion': ['gini', 'entropy'],
     'clf__n_estimators': [100, 300, 500, 1000]
 }
@@ -108,6 +109,8 @@ This analysis was conducted in Python 3.7.1 using Jupyter Notebook allows you to
 - plotly
 
 #%%
+# Import all the libraries
+
 import pandas as pd
 import numpy as np
 
@@ -116,7 +119,7 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.model_selection import train_test_split, KFold, StratifiedKFold, GridSearchCV, learning_curve
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import log_loss, confusion_matrix, roc_curve, auc, roc_auc_scoreaccuracy_score, f1_score, precision_score, recall_score
+from sklearn.metrics import log_loss, confusion_matrix, roc_curve, auc, roc_auc_score, accuracy_score, f1_score, precision_score, recall_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
@@ -159,16 +162,58 @@ def watcher(func):
         return result
     return wrapper
 
+#%% 
+
+# Define classes 
+
+class Dataset:
+    
+    def __init__(self, data, seed, name):
+        self.dataset = data
+        self.seed = seed
+        self.name = name
+        
+    def set_name(name):
+        self.name = name
+    
+    def get_name(name):
+        return self.name
+
+    def import_data(path):
+        self.dataset = pd.read_csv(path)
+
+    def count_classes():
+        self.n_classes = self.dataset['class'].unique().size
+        print(f"There are {self.n_classes} different classes:"
+              f"\n {self.dataset['class'].unique().tolist()}")
+
+
+
+class Classifier:
+
+    def __init__(self, classifier, params, dataset, seed, name):
+        self.classifier = classifier
+        self.params = params
+        self.dataset = dataset
+        self.seed = seed
+        self.name = name
+
+
 #%% [markdown]
-## Dataset analysis and preprocessing
+## Dataset load and overall view
 Let's start importing the data:
+
 #%%
 # Load the dataset
 dataset = pd.read_csv("./Input/mushrooms.csv")
 # dataset = pd.read_csv("./mushrooms.csv")
+
+#%%
+# Shape of the dataset
 print("The dataset has %d rows and %d columns." % dataset.shape)
+
 #%% [markdown]
-Now we will look at the dataset to understand what are the different fields and their types:
+We will look now at the dataset to understand what are the different fields and their types:
 #%%
 # Count number of classes for classification
 print(f"There are {dataset['class'].unique().size} different classes:"
@@ -177,41 +222,65 @@ print(f"There are {dataset['class'].unique().size} different classes:"
 # Count number of unique data for every column
 print(f"Unique values for every field: \n{dataset.nunique()}")
 
+#%% [markdown]
+We can notice that `veil-type` has just one value, therefore that column is useless
+for our analysis. We will remove it later.
+We can now look deeper inside the dataset. Thanks to the pandas library, we can 
+see all the fields of the dataset with the respective values.
+
+#%% [markdown]
+## Preprocessing
+
+Before starting the classification phase, we need to preprocess the dataset, in 
+such a way that our classifiers will score with more accuracy and reliability. 
+This is the most important step, if data are messy the classification will perform 
+poorly.
+
+The steps that we will go trough are:
+
+1. Check data types
+2. Remove not significat columns, if any
+3. Remove null values, if any
+4. Encode string values
+5. Check data distribution, by means of histograms and box plots
+6. Analyze correlation matrix to understand which fields are more important to classify our samples
+7. Check if classes are balanced, and if not, apply balancing techniques
+8. Divide the dataset in classes array and unclassified samples
+9. Scale our data, in such a way to center and standardize them
+
+#%% [markdown]
+### 1 - Check data types
 #%%
 # See data types 
 print(f"Data types: \n{dataset.head(5)}")
 
-# All columns 
-print(", ".join(str(a) for a in dataset.columns))
 #%% [markdown]
-From the above snippet we can notice that the fields are all string values; converting them to numeric values can make our analysis much easier. We will take care of this in the next phase.
-#%% [markdown]
-## Preprocessing
-We need to pre-process our data to 
+From the above snippet we can notice that the fields are all string values; 
+converting them to numeric values will make our analysis much easier. We will use a
+library called LabelEncoder. It allows us with a few line of code to create a mapping
+of every value in each field and transform the data in this way. We can go back to the 
+original mapping simply using the `inverse_transform` function.
 
+Before this step though, we will firstly remove all the useless columns, in this 
+case just `veil-type`.
+
+#%% [markdown]
+### 2 - Remove any not significant column
 #%% 
 n_columns_original = len(dataset.columns)
 to_drop = [col for col in dataset.columns if dataset[col].nunique() == 1]
 dataset.drop(to_drop, axis=1, inplace=True)
 
+for d in to_drop:
+    print(str(d) + " ", end="")
+print("have been removed because zero variance")
 print(f"{n_columns_original - len(dataset.columns)} not significant columns have been removed")
 
-
-#### Handling missing values
-#%%
-# Check if any field is null
-if dataset.isnull().any().any():
-    print("There are some null values")
-else:
-    print("There are no null values")
 #%% [markdown]
-It may seem that we have no missing value from the previous analysis, but if we look better,from the data description we can notice that in the field stalk-root there are some missing values, marked with the question mark; let's count how many of them there are:
-
-#%%
-print("There are " + str((dataset['stalk-root'] == "?").sum()) + " missing values in stalk-root column")
-# df_drop = dataset[dataset['stalk-root'] != "?"]
+As we can notice, only one field was removed. 
 
 #%% [markdown]
+### 3 - Handling missing values
 When we find missing values in a dataset, there are some of the approaches that can be considered:
 
 1. Delete all rows containing a missing value
@@ -220,13 +289,43 @@ When we find missing values in a dataset, there are some of the approaches that 
 4. Substitute with mean, median or mode value for the column.
 5. Substitute with a value estimated by another predictive model.
 
-It is evident from the `dataset.head()` function that our fileds are composed by all string values. Given the fact that we would need to translate in any case every field to a numeric one, to better display them in graphs, a simple approach is to keep the missing data as a peculiar number different from the others, and simply apply the transformation as they were present.
+We will approach this problem using the first and the second techniques:
 
-We will use the LabelEncoder from the sklearn library, which allows us to perform this mapping:
+1- We will create a parallel dataset in which all the rows containing a missing value will be dropped, classifying 
+them as incomplete samples. This may cause a large decrement in the dataset size, but is the only way
+to be sure that we are not going to influence our classification algorithm in any way. 
 
+2- It is evident from the `dataset.head()` function that our fileds are composed by all string values. 
+Given the fact that we would need to translate in any case every field to a numeric one, to better display 
+them in graphs, a simple approach is to keep the missing data as a peculiar number different from the others,
+and simply apply the transformation as they were present.
+
+In any case, let's start counting how many null/missing values we will find.
+#%%
+# Check if any field is null
+if dataset.isnull().any().any():
+    print("There are some null values")
+else:
+    print("There are no null values")
+#%% [markdown]
+It may seem that we have no missing value from the previous analysis... Great!
+But wait a minute ... If we look better,from the data description we can notice that in the field 
+stalk-root there are some missing values, marked with the question mark; let's count how many of them there are:
 
 #%%
-def preprocess(dataset):
+print("There are " + str((dataset['stalk-root'] == "?").sum()) + " missing values in stalk-root column")
+# df_drop = dataset[dataset['stalk-root'] != "?"]
+
+#%% [markdown]
+More than 25% of our samples is incomplete. Dropping all those rows may lead to a shortage of samples.
+This is why we will use the two approaches and see which one performs better.
+
+#%% [markdown]
+### 4 - Encode string values
+As already said, we need to encode all the string values into integers, in such a way to continue
+our analysis in a more easy way. 
+#%%
+def encode_values(dataset):
     mapping = {}  
     d = dataset.copy()
     labelEncoder = LabelEncoder()
@@ -237,26 +336,67 @@ def preprocess(dataset):
         
     return d, labelEncoder, mapping
 
+def print_encoding(mapping):
+    t = PrettyTable()
+    field_names = []
+    rows = []
+    for key, value in mapping.items():
+        r = []
+        r.append(key)
+        for k, v in value.items():
+            r.append(k)
+        rows.append(r)
+    max = []
+    for r in rows:
+        if len(r) > len(max):
+            max = r
+
+    for r in rows:
+        r = r + ['-'] * (len(max) - len(r))
+        t.add_row(r)
+    t.field_names = ["Columns / Values"] + list(range(0, len(max)-1))
+    print(t)
+
+
+
 le = 0
-pre_data, l_encoder, le_mapping = preprocess(dataset)
+pre_data, l_encoder, le_mapping = encode_values(dataset)
 
 # Check mapping
-print(le_mapping)
+print_encoding(le_mapping)
 
 # Check new data
 pre_data.head(5)
 
 #%% [markdown]
-Now let's check if there is any column not useful for classification, 
-where the values are all the same (zero variance)
+As we can see data have been transformed; all the strings values now are equal to integers,
+and we can see the direct corrispondence from the table above.
 
-
-#%%
-# Check new labels
-print(pre_data.groupby('class').size())
 #%% [markdown]
-We can notice that data have been transformed, and now the labels are represented with a 0/1 integer value. 
-Now we can look deeper into some statistical details about the dataset, using the `dataset.describe` command on our pandas DataFrame dataset. The output describes:
+
+### 5 - Check data distribution
+In this phase, we will analyze the distribution of the data. The steps will be:
+
+1. Check amount of samples belonging to a class or to another
+2. Analyze the overall distribution using box plots, a very useful tool to identify outliers and values 
+taken by samples. 
+3. Compare the two classes distributions with the help of an histogram
+
+#%% [markdown]
+#### Check classes distribution
+Let's see how many samples belong to the different classes
+#%%
+print(pre_data.groupby('class').size())
+
+#%% [markdown]
+Luckily the dataset is pretty balanced: 
+we have almost the same amount of samples in a class and in the other; this simplifies the analysis because
+we can assign the same weight to the two classes in the classification phase.
+
+Moreover we can notice that the classification task will be binary. Infact, data have been transformed, 
+and now the labels are represented with a 0/1 integer value. 
+Now we can look deeper into some statistical details about the dataset, 
+using the `dataset.describe` command on our pandas DataFrame dataset. The output describes:
 
 - count: number of samples (rows)
 - mean: the mean of the attribute among all samples
@@ -531,6 +671,11 @@ Now we standardize the data
 
 #%%
 
+def dataframe_to_array(data):
+    y_data = data['class']
+    X_data = data.drop(['class'], axis=1)
+    return X_data, y_data
+
 def scale_data(X_data):
     scaler = StandardScaler(with_mean=True, with_std=True, copy=True)
     return scaler.fit_transform(X_data)
@@ -539,15 +684,11 @@ def scale_data(X_data):
 
 drop_data = pre_data[pre_data['stalk-root'] != le_mapping['stalk-root']['?']]
 
-y_data = pre_data['class']
-y_drop_data = drop_data['class']
-
-X_pre_data = pre_data.drop(['class'], axis=1)
-X_drop_data = drop_data.drop(['class'], axis=1)
-
+X_pre_data, y_data = dataframe_to_array(pre_data)
 X_scaled_data = scale_data(X_pre_data)
-X_scaled_drop_data = scale_data(X_drop_data)
 
+X_drop_data, y_drop_data = dataframe_to_array(drop_data)
+X_drop_data = scale_data(X_drop_data)
 
 #%% [markdown]
 TODO: introduce PCA
@@ -1014,7 +1155,7 @@ gss = [gs_full, gs_pc, gs_drop]
 test_results = score(gss, [(X_test, y_test), (X_test_pc, y_test_pc), (X_test_drop, y_test_drop)])
 
 #%%
-
+'''
 print("Full dataset cv:")
 gs_full_balanced = param_tune_grid_cv(clf_lr_balanced, LOGISTIC_REGRESSION_PARAMS, X_train, y_train, kf)
 print("\nDataset projected on first 9 pc cv:")
@@ -1024,13 +1165,13 @@ gs_drop_balanced = param_tune_grid_cv(clf_lr_balanced, LOGISTIC_REGRESSION_PARAM
 gss_balanced = [gs_full_balanced, gs_pc_balanced, gs_drop_balanced]
 
 test_results_balanced = score(gss_balanced, [(X_test, y_test), (X_test_pc, y_test_pc), (X_test_drop, y_test_drop)])
-
+'''
 #%% 
 X_train.shape
 
 #%%
 dataset_strings = ["full dataset", "dataset with first 9 principal components", "dataset with dropped missing values"]
-method_strings = ["without any balancing", "using balanced class weights"]
+method_strings = ["without any balancing"]
 
 t = PrettyTable()
 t.field_names = ["Score", "Dataset", "Type"]
@@ -1250,7 +1391,40 @@ pre_data.columns
 #%%
 data_vis = pre_data.drop(['odor', 'spore-print-color'], axis=1)
 data_vis = data_vis[data_vis['stalk-root'] != le_mapping['stalk-root']['?']]
+
 data_vis.shape
 
+X_data_vis, y_data_vis = dataframe_to_array(data_vis)
+X_data_vis = scale_data(X_data_vis)
 
+pca = PCA(random_state=RANDOM_SEED)
+proj_data = pca.fit_transform(X_data_vis)
+tot_var = np.sum(pca.explained_variance_)
+ex_var = [(i / tot_var) * 100 for i in sorted(pca.explained_variance_, reverse=True)]
+cum_ex_var = np.cumsum(ex_var)
+n_comp = 9
+pca.components_ = pca.components_[:n_comp]
+reduced_data = np.dot(proj_data, pca.components_.T)
+# pca.inverse_transform(projected_data)
+X_vis_reduced = pd.DataFrame(reduced_data, columns=["PC#%d" % (x + 1) for x in range(n_comp)])
 
+#%%
+X_train_vis, X_test_vis, y_train_vis, y_test_vis = train_test_split(X_vis_reduced, y_data_vis, test_size=0.2, random_state=RANDOM_SEED)
+
+clf_svm = SVC(probability=True, random_state=RANDOM_SEED)
+gs_pc_svm = param_tune_grid_cv(clf_svm, SVM_PARAMS, X_train_vis, y_train_vis, kf)
+print_gridcv_scores(gs_pc_svm, n=5)
+
+#%%
+plot_learning_curve(gs_pc_svm.best_estimator_, "Learning curve of SVM", 
+                    np.concatenate((X_train_vis, X_test_vis)),
+                    np.concatenate((y_train_vis, y_test_vis)),
+                    cv=5)
+
+#%%
+print_confusion_matrix(gs_pc_svm, X_test_vis, y_test_vis)
+
+#%% [markdown]
+
+SVM performs really well also in this case. Those mushrooms are easily
+classified by our model.
