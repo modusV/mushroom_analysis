@@ -116,7 +116,7 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split, KFold, StratifiedKFold, GridSearchCV, learning_curve
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import log_loss, confusion_matrix, roc_curve
+from sklearn.metrics import log_loss, confusion_matrix, roc_curve, auc, roc_auc_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
@@ -1052,7 +1052,7 @@ plot_learning_curve(gs_drop.best_estimator_, "Learning Curve of Logistic Regress
 ### Support vector machine
 
 #%%
-clf_svm = SVC(random_state=RANDOM_SEED)
+clf_svm = SVC(probability=True, random_state=RANDOM_SEED)
 gs_pc_svm = param_tune_grid_cv(clf_svm, SVM_PARAMS, X_train_pc, y_train_pc, kf)
 print_gridcv_scores(gs_pc_svm, n=5)
 
@@ -1136,3 +1136,75 @@ plot_learning_curve(gs_knn.best_estimator_, "Learning curve of Random Forest Cla
 
 
 #%%
+
+def plot_roc_curve(classifiers, legend, title, X_test, y_test):
+    t1 = go.Scatter(
+        x=[0, 1], 
+        y=[0, 1], 
+        showlegend=False,
+        mode="lines",
+        name="",
+        line = dict(
+            color = COLOR_PALETTE[0],
+        ),
+    )
+    
+    data = [t1]
+    aucs = []
+    for clf, string, c in zip(classifiers, legend, COLOR_PALETTE[1:]):
+        y_test_roc = np.array([([0, 1] if y else [1, 0]) for y in y_test])
+        y_score = clf.predict_proba(X_test)
+        
+        # Compute ROC curve and ROC area for each class
+        fpr = dict()
+        tpr = dict()
+        roc_auc = dict()
+        for i in range(2):
+            fpr[i], tpr[i], _ = roc_curve(y_test_roc[:, i], y_score[:, i])
+            roc_auc[i] = auc(fpr[i], tpr[i])
+
+        # Compute micro-average ROC curve and ROC area
+        fpr["micro"], tpr["micro"], _ = roc_curve(y_test_roc.ravel(), y_score.ravel())
+        roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+        aucs.append(roc_auc['micro'])
+
+        trace = go.Scatter(
+            x=fpr['micro'], 
+            y=tpr['micro'], 
+            showlegend=True,
+            mode="lines",
+            name=string + " (area = %0.2f)" % roc_auc['micro'],
+            hoverlabel = dict(
+                namelength=30
+            ),
+            line = dict(
+                color = c,
+            ),
+        )
+        data.append(trace)
+
+    layout = go.Layout(
+        title=title,
+        autosize=False,
+        width=550,
+        height=550,
+        yaxis=dict(
+            title='True Positive Rate',
+        ),
+        xaxis=dict(
+            title="False Positive Rate",
+        ),
+        legend=dict(
+            x=0.4,
+            y=0.06,
+        ),
+    )
+    fig = go.Figure(data=data, layout=layout)
+    return aucs, iplot(fig, filename=title)
+
+#%%
+
+classifiers = [gs_drop, gs_pc_svm, clf_nb, gs_pc_rf, gs_knn]
+classifier_names = ["Logistic Regression", "SVM", "GaussianNB", "Random Forest", "KNN"]
+auc_scores, roc_plot = plot_roc_curve(classifiers, classifier_names, "ROC curve", X_test, y_test)
+roc_plot
