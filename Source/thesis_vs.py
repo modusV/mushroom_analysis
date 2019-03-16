@@ -113,14 +113,14 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.model_selection import train_test_split, KFold, StratifiedKFold, GridSearchCV, learning_curve
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import log_loss, confusion_matrix, roc_curve, auc, roc_auc_score
+from sklearn.metrics import log_loss, confusion_matrix, roc_curve, auc, roc_auc_scoreaccuracy_score, f1_score, precision_score, recall_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.decomposition import PCA
 
 import plotly
 import plotly.plotly as py
@@ -531,8 +531,11 @@ Now we standardize the data
 
 #%%
 
-from sklearn.preprocessing import StandardScaler
+def scale_data(X_data):
+    scaler = StandardScaler(with_mean=True, with_std=True, copy=True)
+    return scaler.fit_transform(X_data)
 
+#%%
 
 drop_data = pre_data[pre_data['stalk-root'] != le_mapping['stalk-root']['?']]
 
@@ -542,19 +545,14 @@ y_drop_data = drop_data['class']
 X_pre_data = pre_data.drop(['class'], axis=1)
 X_drop_data = drop_data.drop(['class'], axis=1)
 
-scaler = StandardScaler()
-
-X_scaled_data = scaler.fit_transform(X_pre_data)
-X_scaled_drop_data = scaler.fit_transform(X_drop_data)
+X_scaled_data = scale_data(X_pre_data)
+X_scaled_drop_data = scale_data(X_drop_data)
 
 
 #%% [markdown]
 TODO: introduce PCA
 
 #%% 
-
-from sklearn.decomposition import PCA
-
 
 pca = PCA(random_state=RANDOM_SEED)
 projected_data = pca.fit_transform(X_scaled_data)
@@ -765,7 +763,7 @@ def score(clfs, datasets):
 
     return scores
 
-#%%
+
 def hexToRGBA(hex, alpha):
     r = int(hex[1:3], 16)
     g = int(hex[3:5], 16)
@@ -777,7 +775,6 @@ def hexToRGBA(hex, alpha):
         return "rgb(" + str(r) + ", " + str(g) + ", " + str(b) + ")"
 
 
-# partially based on https://scikit-learn.org/stable/auto_examples/model_selection/plot_learning_curve.html
 def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=np.linspace(.008, 1.0, 5)):
     """
     Generate a simple plot of the test and training learning curve.
@@ -979,6 +976,25 @@ def plot_feature_importance(feature_importance, title):
     )
     fig = go.Figure(data=data, layout=layout)
     return iplot(fig, filename=title)
+
+
+def print_performances(classifiers, classifier_names, auc_scores, X_test, y_test):
+  accs = []
+  recalls = []
+  precision = []
+  results_table = pd.DataFrame(columns=["accuracy", "precision", "recall", "f1", "auc"])
+  for (i, clf), name, auc in zip(enumerate(classifiers), classifier_names, auc_scores):
+      y_pred = clf.predict(X_test)
+      row = []
+      row.append(accuracy_score(y_test, y_pred))
+      row.append(precision_score(y_test, y_pred))
+      row.append(recall_score(y_test, y_pred))
+      row.append(f1_score(y_test, y_pred))
+      row.append(auc)
+      row = ["%.3f" % r for r in row]
+      results_table.loc[name] = row
+  return results_table
+
 #%% 
 kf = StratifiedKFold(n_splits=5, random_state=RANDOM_SEED)
 clf_lr = LogisticRegression(random_state=RANDOM_SEED)
@@ -1123,6 +1139,11 @@ clf_knn = KNeighborsClassifier()
 gs_knn = param_tune_grid_cv(clf_knn, KNN_PARAMS, X_train_pc, y_train_pc, kf)
 print_gridcv_scores(gs_knn, n=5)
 
+'''
+clf_knn = KNeighborsClassifier()
+gs_knn = param_tune_grid_cv(clf_knn, KNN_PARAMS, X_train, y_train, kf)
+print_gridcv_scores(gs_knn, n=5)
+'''
 #%%
 print_confusion_matrix(gs_knn, X_train_pc, y_train_pc)
 
@@ -1134,6 +1155,8 @@ plot_learning_curve(gs_knn.best_estimator_, "Learning curve of Random Forest Cla
                     cv=5)
 
 
+#%% [markdown]
+The K-NN classification with the whole dataset gives the same result but it takes more than 7 times more time
 
 #%%
 
@@ -1209,6 +1232,9 @@ classifier_names = ["Logistic Regression", "SVM", "GaussianNB", "Random Forest",
 auc_scores, roc_plot = plot_roc_curve(classifiers, classifier_names, "ROC curve", X_test, y_test)
 roc_plot
 
+#%%
+print_performances(classifiers, classifier_names, auc_scores, X_test_pc, y_test_pc)
+
 #%% [markdown]
 
 To have a little bit more fun we will try one more thing. Due to the fact that some 
@@ -1227,20 +1253,4 @@ data_vis = data_vis[data_vis['stalk-root'] != le_mapping['stalk-root']['?']]
 data_vis.shape
 
 
-#%%
 
-accs = []
-recalls = []
-precision = []
-results_table = pd.DataFrame(columns=["accuracy", "precision", "recall", "f1", "auc"])
-for (i, clf), name, auc in zip(enumerate(classifiers), classifier_names, auc_scores):
-    y_pred = clf.predict(X_test_pc)
-    row = []
-    row.append(accuracy_score(y_test_pc, y_pred))
-    row.append(precision_score(y_test_pc, y_pred))
-    row.append(recall_score(y_test_pc, y_pred))
-    row.append(f1_score(y_test_pc, y_pred))
-    row.append(auc)
-    row = ["%.3f" % r for r in row]
-    results_table.loc[name] = row
-results_table
