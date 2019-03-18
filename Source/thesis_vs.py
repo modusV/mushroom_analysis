@@ -28,7 +28,7 @@ files.upload()
 # Define all the constants that will be used
 
 PLOTLY_COLORS = ['#140DFF', '#FF0DE2']
-COLOR_PALETTE = ['#FF0DE2', '#140DFF', '#CAFFD0', '#C9E4E7', '#B4A0E5', '#904C77']
+COLOR_PALETTE = ['#140DFF', '#FF0DE2', '#CAFFD0', '#C9E4E7', '#B4A0E5', '#904C77']
 COLORSCALE_HEATMAP = [         [0.0, 'rgb(70,0,252)'], 
                 [0.1111111111111111, 'rgb(78,0,252)'], 
                 [0.2222222222222222, 'rgb(90,0,252)'], 
@@ -132,6 +132,7 @@ import plotly.graph_objs as go
 import plotly.figure_factory as ff
 
 from scipy.cluster import hierarchy as hc
+import scipy.spatial as scs
 
 from imblearn.pipeline import make_pipeline, Pipeline
 from imblearn.over_sampling import SMOTE
@@ -242,9 +243,9 @@ The steps that we will go trough are:
 2. Remove not significat columns, if any
 3. Remove null values, if any
 4. Encode string values
-5. Check data distribution, by means of histograms and box plots
-6. Analyze correlation matrix to understand which fields are more important to classify our samples
-7. Check if classes are balanced, and if not, apply balancing techniques
+5. Check class distribution and, if classes are unbalanced, apply balancing techniques
+6. Check data distribution using of bar graphs and box plots
+7. Analyze correlation matrix to understand which fields are more important to classify our samples
 8. Divide the dataset in classes array and unclassified samples
 9. Scale our data, in such a way to center and standardize them
 
@@ -374,7 +375,7 @@ and we can see the direct corrispondence from the table above.
 
 #%% [markdown]
 
-### 5 - Check data distribution
+### 5/6 - Check class and data distribution
 In this phase, we will analyze the distribution of the data. The steps will be:
 
 1. Check amount of samples belonging to a class or to another
@@ -383,20 +384,22 @@ taken by samples.
 3. Compare the two classes distributions with the help of an histogram
 
 #%% [markdown]
-#### Check classes distribution
+#### 5 - Check classes distribution
 Let's see how many samples belong to the different classes
 #%%
-print(pre_data.groupby('class').size())
+y = dataset["class"].value_counts()
+print(y)
+class_dict = ["edible", "poisonous"]
 
 #%% [markdown]
 Luckily the dataset is pretty balanced: 
 we have almost the same amount of samples in a class and in the other; this simplifies the analysis because
 we can assign the same weight to the two classes in the classification phase.
 
-Moreover we can notice that the classification task will be binary. Infact, data have been transformed, 
+Moreover, we can notice that the classification task will be binary. Infact, data have been transformed, 
 and now the labels are represented with a 0/1 integer value. 
 Now we can look deeper into some statistical details about the dataset, 
-using the `dataset.describe` command on our pandas DataFrame dataset. The output describes:
+using the `pre_df.describe()` command on our pandas DataFrame dataset. The output shows:
 
 - count: number of samples (rows)
 - mean: the mean of the attribute among all samples
@@ -408,15 +411,16 @@ using the `dataset.describe` command on our pandas DataFrame dataset. The output
 - max: the maximal value of the attribute
 #%%
 # Get insights on the dataset
-dataset.describe()
-
-#%%
-y = dataset["class"].value_counts()
-print(y)
-class_dict = ["edible", "poisonous"]
+pre_data.describe()
 
 #%% [markdown]
-This is the class distribution:
+This is the class distribution plotten on a histogram. As we already saw before,
+the class distribution is pretty balanced. 
+
+In this report the plotly library will be used. 
+Plotly.py is an interactive, open-source, and browser-based graphing library for Python, which allows
+you to create interactive plots in a few steps.
+
 #%%
 data = [go.Bar(
             x=class_dict,
@@ -435,9 +439,10 @@ layout = go.Layout(title="Class distribution",
                     ),
                    )
 fig = go.Figure(data=data, layout=layout)
-py.iplot(fig, filename='color-bar')
+py.iplot(fig, filename='distribution-bar')
 
 #%% [markdown]
+#### 6 - Box plot
 
 At this point we can analyze the distribution of our data using a boxplot. 
 A boxplot is a standardized way of displaying the distribution of data based on a 
@@ -512,6 +517,8 @@ sliders = [dict(
 
 layout = dict(
     sliders=sliders,
+    height=500,
+    width=600,
     yaxis=dict(
         title='value',
         automargin=True,
@@ -527,14 +534,126 @@ py.iplot(fig, filename='box_slider')
 
 #%% [markdown]
 
-From the boxplot above, we can see that the colour and the shape of the 
+From the boxplot above, we can see that the color and the shape of the 
 cap are not an effective parameter to decide whether a mushroom is poisonous or edible, 
 because their plots are very similar (same median and very close distribution). 
-The gill color instead, is more significant; 
+The odor and the population columns, on the other hand, are more significant; 
+
+In the odor field, all the edible mushrooms are squeezed into a single value
+with a few outliers, while the poisonous may have all the different values.
 
 #%% [markdown]
+#### 6 - Bar graph 
 
-Let's investigate the correlation between variables:
+A bar chart or bar graph is a chart or graph that presents categorical 
+data with rectangular bars with heights or lengths proportional to the values that they represent.
+With a slider we can move along the different features, to better visualize the value distributions.
+#%%
+
+def create_bar(type, data, col, visible=False):
+    if type == "edible":
+        c = PLOTLY_COLORS[0]
+    else:
+        c = PLOTLY_COLORS[1]
+    return go.Histogram(
+        x = data[col],
+        name = type,
+        marker=dict(color = c),
+        visible=visible,
+        opacity=PLOTLY_OPACITY,
+    )
+
+hist_features = [col for col in pre_data.columns if (col != 'class')]
+
+active_index = 0
+hist_edible = [(create_bar("edible", edible, col, False) if i != active_index 
+               else create_bar("edible", edible, col, True)) 
+              for i, col in enumerate(hist_features)]
+
+hist_poisonous = [(create_bar("poisonous", poisonous, col, False) if i != active_index 
+               else create_bar("poisonous", poisonous, col, True)) 
+              for i, col in enumerate(hist_features)]
+
+total_data = hist_edible + hist_poisonous
+n_features = len(hist_features)
+steps = []
+
+for i in range(n_features):
+    step = dict(
+        method = 'restyle',  
+        args = ['visible', [False] * len(total_data)],
+        label = hist_features[i],
+    )
+    step['args'][1][i] = True # Toggle i'th trace to "visible"
+    step['args'][1][i + n_features] = True # Toggle i'th trace to "visible"
+    steps.append(step)
+    
+sliders = [dict(
+    active = active_index,
+    currentvalue = dict(
+        prefix = "Feature: ", 
+        xanchor= 'center',
+    ),
+    pad = {"t": 50},
+    steps = steps,
+)]
+
+layout = dict(
+    sliders=sliders,
+    height=500,
+    width=600,
+    yaxis=dict(
+        title='value',
+        automargin=True,
+    ),
+    legend=dict(
+        x=0,
+        y=1,
+    ),
+    barmode='group',
+    bargap=0.15,
+    bargroupgap=0.1
+)
+
+fig = dict(data=total_data, layout=layout)
+py.iplot(fig, filename='bar_slider')
+
+#%% [markdown]
+From the bar graph we can see that the `cap-shape` and the `cap-color` are not 
+that significant to classify a sample. On the other hand, some fields like `odor`
+show a distinct separation of the two classes; these ones will be the ones with more 
+impact on our classification algorithms.
+
+From these bar graphs we can see that our dataset is pretty well separated. This means
+that, in our classification task, we will be able to achieve high accuracy even with 
+some dimensionality reduction.
+
+#%% [markdown]
+### 7 - Correlation matrix
+A correlation matrix is a table showing correlation coefficients between sets of variables. 
+Each random variable (Xi) in the table is correlated with each of the other values in the table (Xj). 
+This allows you to see which pairs have the highest correlation.
+Correlation is any statistical association, though in common usage it most often refers 
+to how close two variables are to having a linear relationship with each other.
+
+We will use the **Pearson's correlation**, which is a measure of the linear correlation 
+between two variables X and Y. According to the Cauchy–Schwarz inequality it has a value between 
++1 and −1, where 1 is total positive linear correlation, 0 is no linear correlation, and −1 is 
+total negative linear correlation.
+
+The coefficient for a population is computed as:
+$$
+\rho_{(X,Y)} = \frac{cov(X,Y)}{\sigma_X\sigma_Y}
+$$
+Where:
+- $cov$ is the covariance:
+    $$cov(X,Y) = \frac{E[(X - \mu_X)(Y-\mu_Y)]}{\sigma_X\sigma_Y}$$
+    - Where $\mu$ is the mean
+- $\sigma_X$ is the standard deviation of X
+    $$\sigma_X^2 = E[X^2] - [E[X]]^2$$
+- $\sigma_Y$ is the standard deviation of Y
+    $$\sigma_Y^2 = E[Y^2] - [E[Y]]^2$$
+
 
 #%%
 correlation_matrix = pre_data.corr(method='pearson')
@@ -565,88 +684,34 @@ fig = go.Figure(data=data, layout=layout)
 py.iplot(fig, filename='labelled-heatmap4')
 
 #%% [markdown]
+From the matrix, we can see that the most correlated columns to the class are 
+`gill-color`, `gill-size` and `bruises`.
+The diagonal has correlation 1 because every class has maximum correlation with itself.
+We can also see that `veil-color` and `gill-attachment`are highly correlated.
 
-TODO: Give some impressions on the heatmap
+#%% 
+A dendrogram is a diagram representing a tree. This diagrammatic representation is frequently used 
+in different contexts, but we will see the case representing hierarchical clustering. 
+It illustrates the arrangement of the clusters, and its objective is to analyze if 
+we have any duplicate features.
+In order to reduce the dimensionality of our dataset, we can identify and remove duplicate features
+according to their pairwise correlation with others.
 
-#%%
-
-def create_hist(type, data, col, visible=False):
-    if type == "edible":
-        c = PLOTLY_COLORS[0]
-    else:
-        c = PLOTLY_COLORS[1]
-    return go.Histogram(
-        x = data[col],
-        name = type,
-        marker=dict(color = c),
-        visible=visible,
-        opacity=PLOTLY_OPACITY,
-    )
-
-hist_features = [col for col in pre_data.columns if (col != 'class')]
-
-active_index = 0
-hist_edible = [(create_hist("edible", edible, col, False) if i != active_index 
-               else create_hist("edible", edible, col, True)) 
-              for i, col in enumerate(hist_features)]
-
-hist_poisonous = [(create_hist("poisonous", poisonous, col, False) if i != active_index 
-               else create_hist("poisonous", poisonous, col, True)) 
-              for i, col in enumerate(hist_features)]
-
-total_data = hist_edible + hist_poisonous
-n_features = len(hist_features)
-steps = []
-
-for i in range(n_features):
-    step = dict(
-        method = 'restyle',  
-        args = ['visible', [False] * len(total_data)],
-        label = hist_features[i],
-    )
-    step['args'][1][i] = True # Toggle i'th trace to "visible"
-    step['args'][1][i + n_features] = True # Toggle i'th trace to "visible"
-    steps.append(step)
-    
-sliders = [dict(
-    active = active_index,
-    currentvalue = dict(
-        prefix = "Feature: ", 
-        xanchor= 'center',
-    ),
-    pad = {"t": 50},
-    steps = steps,
-)]
-
-layout = dict(
-    sliders=sliders,
-    yaxis=dict(
-        title='value',
-        automargin=True,
-    ),
-    legend=dict(
-        x=0,
-        y=1,
-    ),
-    barmode='group',
-    bargap=0.15,
-    bargroupgap=0.1
-)
-
-fig = dict(data=total_data, layout=layout)
-py.iplot(fig, filename='hist_slider')
-
-#%% [markdown]
-TODO give impressions on the histogram
+The linkage criterion determines the distance between sets of observations as a function 
+of the pairwise distances between observations.
+We will use the between-group average linkage (UPGMA). Proximity between two clusters 
+is the arithmetic mean of all the proximities between the objects of one, on one side, 
+and the objects of the other, on the other side.
+The method is frequently set the default one in hierarhical clustering packages.
 
 #%% 
 
-X = np.random.rand(10, 10)
 names = pre_data.columns
 inverse_correlation = 1 - abs(pre_data.corr()) # This is the 'dissimilarity' method
+
 fig = ff.create_dendrogram(inverse_correlation.values, 
                            labels=names, 
-                           colorscale=PLOTLY_COLORS, 
+                           colorscale=COLOR_PALETTE, 
                            linkagefun=lambda x: hc.linkage(x, 'average'))
 
 fig['layout'].update(dict(
@@ -665,10 +730,40 @@ iplot(fig, filename='dendrogram_corr_clustering')
 
 
 #%% [markdown]
-TODO: comment the graph, every feature is useful
+From the above graph, the closest features are `veil-color` and `gill-attachment`.
+Because that their distance is still far from zero, I choose not to remove any of 
+the two features; moreover our dataset is pretty small, so we should not have 
+great performance issues.
 
-Now we standardize the data 
+#%% [markdown]
+### 8/9 - Scale and divide data
 
+Most of the times, datasets contain features highly varying in magnitudes, units and range. 
+But since, most of the machine learning algorithms use Eucledian distance between two data 
+points in their computations, this is a problem.
+If left alone, these algorithms only take in the magnitude of features neglecting the units. 
+The results would vary greatly between different units, for example between 
+5kg and 5000gms. The features with high magnitudes will weigh in a lot more in the 
+distance calculations than features with low magnitudes.
+
+To supress this effect, we need to bring all features to the same level of 
+magnitudes. This can be acheived by scaling.
+
+We will use the StandardScaler, which standardizes our data 
+both with mean and standard deviation.
+The operation performed will be:
+
+$$
+x' = \frac{x - \mu_x}{\sigma_x}
+$$
+
+After this step, we divide the dataset into an array of unclassified samples
+and an array of labels, to use for the classification phase.
+
+At this point, I decide to bring to the next phase two different datasets:
+1. The full dataset, where the missing values are encoded with an integer
+2. A reduced version of the dataset, where the rows with missing data are considered
+as incomplete samples and are dropped. 
 #%%
 
 def dataframe_to_array(data):
