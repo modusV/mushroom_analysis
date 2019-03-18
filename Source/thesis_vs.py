@@ -1,12 +1,13 @@
 #%% [markdown]
-# Safe to eat or deadly poisonous?
-### An analysis on mushroom classification by Lorenzo Santolini
+
+# # Safe to eat or deadly poisonous?
+# ### An analysis on mushroom classification by Lorenzo Santolini
 
 #%% [markdown]
-This is a little code to import automatically the dataset into google colab. 
-Provide your kaggle's API key (profile section) when file requested
+# This is a little code to import automatically the dataset into google colab. 
+# Provide your kaggle's API key (profile section) when file requested
 
-#### Code snippet for google colab
+# ### Code snippet for google colab
 
 #%%
 # Little code snippet to import on Google Colab the dataset
@@ -75,38 +76,45 @@ KNN_PARAMS = {
 
 #%% [markdown]
 ## Introduction
-This dataset includes descriptions of hypothetical samples corresponding to 23 species of gilled mushrooms in the Agaricus and Lepiota Family Mushroom. Each species is identified as edible or poisonous. Rows are composed by 23 different fields, each one of them identifying a specific charateristic:
+# This dataset includes descriptions of hypothetical samples corresponding to 23 species of gilled mushrooms in the Agaricus and Lepiota Family Mushroom. Each species is identified as edible or poisonous. Rows are composed by 23 different fields, each one of them identifying a specific charateristic:
 
-- Class: poisonous=p, edible=e
-- Cap-shape: bell=b, conical=c, convex=x, flat=f, knobbed=k, sunken=s
-- Cap-surface: fibrous=f, grooves=g, scaly=y, smooth=s
-- Cap-color: brown=n, buff=b, cinnamon=c, gray=g, green=r, pink=p, purple=u, red=e, white=w, yellow=y
-- Bruises: bruises=t, no=f
-- Odor: almond=a, anise=l, creosote=c, fishy=y, foul=f, musty=m, none=n, pungent=p, spicy=s
-- Gill-attachment: attached=a, descending=d, free=f, notched=n
-- Gill-spacing: close=c, crowded=w, distant=d
-- Gill-size: broad=b, narrow=n
-- Gill-color: black=k, brown=n, buff=b, chocolate=h, gray=g, green=r, orange=o, pink=p, purple=u,red=e, white=w, yellow=y
-- Stalk-shape: enlarging=e, tapering=t
-- Stalk-root: bulbous=b, club=c, cup=u, equal=e, rhizomorphs=z, rooted=r, missing=?
-- Stalk-surface-above-ring: fibrous=f, scaly=y, silky=k, smooth=s
-- Stalk-surface-below-ring: fibrous=f, scaly=y, silky=k, smooth=s
-- Stalk-color-above-ring: brown=n, buff=b, cinnamon=c, gray=g, orange=o, pink=p, red=e, white=w, yellow=y
-- Stalk-color-below-ring: brown=n, buff=b, cinnamon=c, gray=g, orange=o, pink=p, red=e, white=w, yellow=y
-- Veil-type: partial=p, universal=u
-- Veil-color: brown=n, orange=o, white=w, yellow=y
-- Ring-number: none=n, one=o, two=t
-- Ring-type: cobwebby=c, evanescent=e, flaring=f, large=l, none=n, pendant=p, sheathing=s, zone=z
-- Spore-print-color: black=k, brown=n, buff=b, chocolate=h, green=r, orange=o, purple=u, white=w, yellow=y
-- Population: abundant=a, clustered=c, numerous=n, scattered=s, several=v, solitary=y
-- Habitat: grasses=g, leaves=l, meadows=m, paths=p, urban=u, waste=w, woods=d
+# - `Class`: poisonous=p, edible=e
+# - `Cap-surface`: fibrous=f, grooves=g, scaly=y, smooth=s
+# - `Cap-shape`: bell=b, conical=c, convex=x, flat=f, knobbed=k, sunken=s
+# - `Cap-color`: brown=n, buff=b, cinnamon=c, gray=g, green=r, pink=p, purple=u, red=e, white=w, yellow=y
+# - `Bruises`: bruises=t, no=f
+# - `Odor`: almond=a, anise=l, creosote=c, fishy=y, foul=f, musty=m, none=n, pungent=p, spicy=s
+# - `Gill-attachment`: attached=a, descending=d, free=f, notched=n
+# - `Gill-spacing`: close=c, crowded=w, distant=d
+# - `Gill-size`: broad=b, narrow=n
+# - `Gill-color`: black=k, brown=n, buff=b, chocolate=h, gray=g, green=r, orange=o, pink=p, purple=u,red=e, white=w, yellow=y
+# - `Stalk-shape`: enlarging=e, tapering=t
+# - `Stalk-root`: bulbous=b, club=c, cup=u, equal=e, rhizomorphs=z, rooted=r, missing=?
+# - `Stalk-surface-above-ring`: fibrous=f, scaly=y, silky=k, smooth=s
+# - `Stalk-surface-below-ring`: fibrous=f, scaly=y, silky=k, smooth=s
+# - `Stalk-color-above-ring`: brown=n, buff=b, cinnamon=c, gray=g, orange=o, pink=p, red=e, white=w, yellow=y
+# - `Stalk-color-below-ring`: brown=n, buff=b, cinnamon=c, gray=g, orange=o, pink=p, red=e, white=w, yellow=y
+# - `Veil-type`: partial=p, universal=u
+# - `Veil-color`: brown=n, orange=o, white=w, yellow=y
+# - `Ring-number`: none=n, one=o, two=t
+# - `Ring-type`: cobwebby=c, evanescent=e, flaring=f, large=l, none=n, pendant=p, sheathing=s, zone=z
+# - `Spore-print-color`: black=k, brown=n, buff=b, chocolate=h, green=r, orange=o, purple=u, white=w, yellow=y
+# - `Population`: abundant=a, clustered=c, numerous=n, scattered=s, several=v, solitary=y
+# - `Habitat`: grasses=g, leaves=l, meadows=m, paths=p, urban=u, waste=w, woods=d  
+# 
+# This analysis was conducted in *Python 3.7.1* using Jupyter Notebook allows you to combine code, 
+# comments, multimedia, and visualizations in an interactive document — called a notebook, 
+# naturally — that can be shared, re-used, and re-worked.  
+#
+# In addition, the following packages were used:  
 
-This analysis was conducted in Python 3.7.1 using Jupyter Notebook allows you to combine code, comments, multimedia, and visualizations in an interactive document — called a notebook, naturally — that can be shared, re-used, and re-worked. In addition, the following packages were used:
-
-- sklearn
-- pandas
-- numpy
-- plotly
+# - sklearn
+# - pandas
+# - numpy
+# - plotly
+# - scipy
+# - prettytable
+# - imblearn
 
 #%%
 # Import all the libraries
@@ -203,7 +211,7 @@ class Classifier:
 
 #%% [markdown]
 ## Dataset load and overall view
-Let's start importing the data:
+# Let's start importing the data:
 
 #%%
 # Load the dataset
@@ -215,7 +223,7 @@ dataset = pd.read_csv("./Input/mushrooms.csv")
 print("The dataset has %d rows and %d columns." % dataset.shape)
 
 #%% [markdown]
-We will look now at the dataset to understand what are the different fields and their types:
+# We will look now at the dataset to understand what are the different fields and their types:
 #%%
 # Count number of classes for classification
 print(f"There are {dataset['class'].unique().size} different classes:"
@@ -225,49 +233,51 @@ print(f"There are {dataset['class'].unique().size} different classes:"
 print(f"Unique values for every field: \n{dataset.nunique()}")
 
 #%% [markdown]
-We can notice that `veil-type` has just one value, therefore that column is useless
-for our analysis. We will remove it later.
-We can now look deeper inside the dataset. Thanks to the pandas library, we can 
-see all the fields of the dataset with the respective values.
+# We can notice that `veil-type` has just one value, therefore that column is useless
+# for our analysis. We will remove it later.  
+# 
+# We can now look deeper inside the dataset. Thanks to the pandas library, we can 
+# see all the fields of the dataset with the respective values.
 
 #%% [markdown]
 ## Preprocessing
 
-Before starting the classification phase, we need to preprocess the dataset, in 
-such a way that our classifiers will score with more accuracy and reliability. 
-This is the most important step, if data are messy the classification will perform 
-poorly.
+# Before starting the classification phase, we need to preprocess the dataset, in 
+# such a way that our classifiers will score with more accuracy and reliability. 
+# This is the most important step, if data are messy the classification will perform 
+# poorly.
 
-The steps that we will go trough are:
+# The steps that we will go trough are:  
+# 
+# 1. Check data types  
 
-1. Check data types
-2. Remove not significat columns, if any
-3. Remove null values, if any
-4. Encode string values
-5. Check class distribution and, if classes are unbalanced, apply balancing techniques
-6. Check data distribution using of bar graphs and box plots
-7. Analyze correlation matrix to understand which fields are more important to classify our samples
-8. Divide the dataset in classes array and unclassified samples
-9. Scale our data, in such a way to center and standardize them
+# 2. Remove not significat columns, if any  
+# 3. Remove null values, if any
+# 4. Encode string values
+# 5. Check class distribution and, if classes are unbalanced, apply balancing techniques
+# 6. Check data distribution using of bar graphs and box plots
+# 7. Analyze correlation matrix to understand which fields are more important to classify our samples
+# 8. Divide the dataset in classes array and unclassified samples
+# 9. Scale our data, in such a way to center and standardize them
 
 #%% [markdown]
-### 1 - Check data types
+# ### 1 - Check data types
 #%%
 # See data types 
 print(f"Data types: \n{dataset.head(5)}")
 
 #%% [markdown]
-From the above snippet we can notice that the fields are all string values; 
-converting them to numeric values will make our analysis much easier. We will use a
-library called LabelEncoder. It allows us with a few line of code to create a mapping
-of every value in each field and transform the data in this way. We can go back to the 
-original mapping simply using the `inverse_transform` function.
-
-Before this step though, we will firstly remove all the useless columns, in this 
-case just `veil-type`.
+# From the above snippet we can notice that the fields are all string values; 
+# converting them to numeric values will make our analysis much easier. We will use a
+# library called `LabelEncoder`. It allows us with a few line of code to create a mapping
+# of every value in each field and transform the data in this way. We can go back to the 
+# original mapping simply using the `inverse_transform` function.  
+#
+# Before this step though, we will firstly remove all the useless columns, in this 
+# case just `veil-type`.
 
 #%% [markdown]
-### 2 - Remove any not significant column
+# ### 2 - Remove any not significant column
 #%% 
 n_columns_original = len(dataset.columns)
 to_drop = [col for col in dataset.columns if dataset[col].nunique() == 1]
@@ -279,30 +289,39 @@ print("have been removed because zero variance")
 print(f"{n_columns_original - len(dataset.columns)} not significant columns have been removed")
 
 #%% [markdown]
-As we can notice, only one field was removed. 
+# As we can notice, only one field was removed. 
 
 #%% [markdown]
-### 3 - Handling missing values
-When we find missing values in a dataset, there are some of the approaches that can be considered:
-
-1. Delete all rows containing a missing value
-2. Substitute with a constant value that has meaning within the domain, such as 0, distinct from all other values.
-3. Substitute with a value from another randomly selected record.
-4. Substitute with mean, median or mode value for the column.
-5. Substitute with a value estimated by another predictive model.
-
-We will approach this problem using the first and the second techniques:
-
-1- We will create a parallel dataset in which all the rows containing a missing value will be dropped, classifying 
-them as incomplete samples. This may cause a large decrement in the dataset size, but is the only way
-to be sure that we are not going to influence our classification algorithm in any way. 
-
-2- It is evident from the `dataset.head()` function that our fileds are composed by all string values. 
-Given the fact that we would need to translate in any case every field to a numeric one, to better display 
-them in graphs, a simple approach is to keep the missing data as a peculiar number different from the others,
-and simply apply the transformation as they were present.
-
-In any case, let's start counting how many null/missing values we will find.
+# ### 3 - Handling missing values
+# When we find missing values in a dataset, there are some of the approaches that can be 
+# considered:  
+#
+# 1. Delete all rows containing a missing value
+# 2. Substitute with a constant value that has meaning within the domain, such as 0, distinct from all other values.
+# 3. Substitute with a value from another randomly selected record.
+# 4. Substitute with mean, median or mode value for the column.
+# 5. Substitute with a value estimated by another predictive model.  
+#
+# 
+# We will approach this problem using the first and the second techniques:
+# 
+# 1. We will create a parallel dataset in which all the rows containing a missing 
+# value will be dropped, classifying 
+# them as incomplete samples. This may cause a large decrement in the dataset size
+# but is the only way
+# to be sure that we are not going to influence our classification algorithm in any
+# way. 
+# 
+# 2. It is evident from the `dataset.head()` function that our fileds are composed
+# by all string values. 
+# Given the fact that we would need to translate in any case every field to a
+# numeric one, to better display 
+# them in graphs, a simple approach is to keep the missing data as a peculiar number
+# different from the others,
+# and simply apply the transformation as they were present.
+# 
+# 
+# In any case, let's start counting how many null/missing values we will find.
 #%%
 # Check if any field is null
 if dataset.isnull().any().any():
@@ -310,24 +329,29 @@ if dataset.isnull().any().any():
 else:
     print("There are no null values")
 #%% [markdown]
-It may seem that we have no missing value from the previous analysis... Great!
-But wait a minute ... If we look better,from the data description we can notice that in the field 
-stalk-root there are some missing values, marked with the question mark; let's count how many of them there are:
+# It may seem that we have no missing value from the previous analysis... Great!
+# 
+# But wait a minute ... If we look better,from the data description we can notice that in the field 
+# `stalk-root` there are some missing values, marked with the question mark; let's count how many of them there are:
 
 #%%
 print("There are " + str((dataset['stalk-root'] == "?").sum()) + " missing values in stalk-root column")
 # df_drop = dataset[dataset['stalk-root'] != "?"]
 
 #%% [markdown]
-More than 25% of our samples is incomplete. Dropping all those rows may lead to a shortage of samples.
-This is why we will use the two approaches and see which one performs better.
+# More than 25% of our samples is incomplete. Dropping all those rows may lead to a shortage of samples.
+# This is why we will use the two approaches and see which one performs better.
 
 #%% [markdown]
-### 4 - Encode string values
-As already said, we need to encode all the string values into integers, in such a way to continue
-our analysis in a more easy way. 
+# ### 4 - Encode string values
+# As already said, we need to encode all the string values into integers, in such a way to continue our analysis in a more easy way. 
 #%%
 def encode_values(dataset):
+    """
+    Encode string values of a dataset using numbers
+
+    :param (array of arrays) dataset: Input dataset to encode
+    """
     mapping = {}  
     d = dataset.copy()
     labelEncoder = LabelEncoder()
@@ -371,56 +395,50 @@ print_encoding(le_mapping)
 pre_data.head(5)
 
 #%% [markdown]
-As we can see data have been transformed; all the strings values now are equal to integers,
-and we can see the direct corrispondence from the table above.
+# As we can see data have been transformed; all the strings values now are equal to integers, and we can see the direct corrispondence from the table above.
 
 #%% [markdown]
 
-### 5/6 - Check class and data distribution
-In this phase, we will analyze the distribution of the data. The steps will be:
-
-1. Check amount of samples belonging to a class or to another
-2. Analyze the overall distribution using box plots, a very useful tool to identify outliers and values 
-taken by samples. 
-3. Compare the two classes distributions with the help of an histogram
+# ### 5/6 - Check class and data distribution
+#In this phase, we will analyze the distribution of the data. The steps will be:
+#
+# 1. Check amount of samples belonging to a class or to another.
+# 2. Analyze the overall distribution using box plots, a very useful tool to identify outliers and values taken by samples. 
+# 3. Compare the two classes distributions with the help of an histogram.
 
 #%% [markdown]
-#### 5 - Check classes distribution
-Let's see how many samples belong to the different classes
+# #### 5 - Check classes distribution
+# Let's see how many samples belong to the different classes
 #%%
 y = dataset["class"].value_counts()
 print(y)
 class_dict = ["edible", "poisonous"]
 
 #%% [markdown]
-Luckily the dataset is pretty balanced: 
-we have almost the same amount of samples in a class and in the other; this simplifies the analysis because
-we can assign the same weight to the two classes in the classification phase.
-
-Moreover, we can notice that the classification task will be binary. Infact, data have been transformed, 
-and now the labels are represented with a 0/1 integer value. 
-Now we can look deeper into some statistical details about the dataset, 
-using the `pre_df.describe()` command on our pandas DataFrame dataset. The output shows:
-
-- count: number of samples (rows)
-- mean: the mean of the attribute among all samples
-- std: the standard deviation of the attribute
-- min: the minimal value of the attribute
-- 25%: the lower percentile
-- 50%: the median
-- 75%: the upper percentile
-- max: the maximal value of the attribute
+# Luckily the dataset is pretty balanced: 
+# We have almost the same amount of samples in a class and in the other; this simplifies the analysis because we can assign the same weight to the two classes in the classification phase.
+# 
+# Moreover, we can notice that the classification task will be binary. Infact, data have been transformed, and now the labels are represented with a 0/1 integer value. 
+# Now we can look deeper into some statistical details about the dataset, using the `pre_df.describe()` command on our pandas DataFrame dataset. The output shows:
+# 
+# - count: number of samples (rows)
+# - mean: the mean of the attribute among all samples
+# - std: the standard deviation of the attribute
+# - min: the minimal value of the attribute
+# - 25%: the lower percentile
+# - 50%: the median
+# - 75%: the upper percentile
+# - max: the maximal value of the attribute
 #%%
 # Get insights on the dataset
 pre_data.describe()
 
 #%% [markdown]
-This is the class distribution plotten on a histogram. As we already saw before,
-the class distribution is pretty balanced. 
-
-In this report the plotly library will be used. 
-Plotly.py is an interactive, open-source, and browser-based graphing library for Python, which allows
-you to create interactive plots in a few steps.
+# This is the class distribution plotten on a histogram. As we already saw before the class distribution is pretty balanced. 
+# 
+# In this report the plotly library will be used. 
+# 
+# *Plotly.py* is an interactive, open-source, and browser-based graphing library for Python, which allows you to create interactive plots in a few steps.
 
 #%%
 data = [go.Bar(
@@ -441,25 +459,24 @@ fig = go.Figure(data=data, layout=layout)
 py.iplot(fig, filename='distribution-bar')
 
 #%% [markdown]
-#### 6 - Box plot
-
-At this point we can analyze the distribution of our data using a boxplot. 
-A boxplot is a standardized way of displaying the distribution of data based on a 
-five number summary (“minimum”, first quartile (Q1), median, third quartile (Q3), and “maximum”). 
-It can tell you about your outliers and what their values are. 
-It can also tell you if your data is symmetrical, how tightly your data is grouped, 
-and if and how your data is skewed.
-The information that we can find in a box plot are:
-
-- **median** (Q2/50th Percentile): the middle value of the dataset.
-- **first quartile** (Q1/25th Percentile): the middle number between the smallest number (not the “minimum”) and the median of the dataset.
-- **third quartile** (Q3/75th Percentile): the middle value between the median and the highest value (not the “maximum”) of the dataset.
-- **interquartile range** (IQR): 25th to the 75th percentile.
-- **outliers** (shown as green circles)
-- **maximum**: Q3 + 1.5*IQR
-- **minimum**: Q1 -1.5*IQR
-
-It makes no sense showing binary or with few different values fields, so we are going to filter them before plotting.
+# #### 6 - Box plot
+# 
+# At this point we can analyze the distribution of our data using a boxplot. 
+# A boxplot is a standardized way of displaying the distribution of data based on a five number summary (“minimum”, first quartile (Q1), median, third quartile (Q3), and “maximum”). 
+#
+# It can tell you about your outliers and what their values are. 
+# It can also tell you if your data is symmetrical, how tightly your data is grouped,and if and how your data is skewed.
+# The information that we can find in a box plot are:
+# 
+# - **median** (Q2/50th Percentile): the middle value of the dataset.
+# - **first quartile** (Q1/25th Percentile): the middle number between the smallest number (not the “minimum”) and the median of the dataset.
+# - **third quartile** (Q3/75th Percentile): the middle value between the median and the highest value (not the “maximum”) of the dataset.
+# - **interquartile range** (IQR): 25th to the 75th percentile.
+# - **outliers** (shown as green circles)
+# - **maximum**: Q3 + 1.5*IQR
+# - **minimum**: Q1 -1.5*IQR
+#
+# It makes no sense showing binary or with few different values fields, so we are going to filter them before plotting.
 
 #%%
 
@@ -532,20 +549,17 @@ py.iplot(fig, filename='box_slider')
 
 #%% [markdown]
 
-From the boxplot above, we can see that the color and the shape of the 
-cap are not an effective parameter to decide whether a mushroom is poisonous or edible, 
-because their plots are very similar (same median and very close distribution). 
-The odor and the population columns, on the other hand, are more significant; 
-
-In the odor field, all the edible mushrooms are squeezed into a single value
-with a few outliers, while the poisonous may have all the different values.
+# From the boxplot above, we can see that the color and the shape of the cap are not an effective parameter to decide whether a mushroom is poisonous or edible, because their plots are very similar (same median and very close distribution). 
+# The odor and the population columns, on the other hand, are more significant; 
+# 
+# In the odor field, all the edible mushrooms are squeezed into a single value
+# with a few outliers, while the poisonous may have all the different values.
 
 #%% [markdown]
-#### 6 - Bar graph 
-
-A bar chart or bar graph is a chart or graph that presents categorical 
-data with rectangular bars with heights or lengths proportional to the values that they represent.
-With a slider we can move along the different features, to better visualize the value distributions.
+# #### 6 - Bar graph 
+# 
+# A bar chart or bar graph is a chart or graph that presents categorical data with rectangular bars with heights or lengths proportional to the values that they represent.
+# With a slider we can move along the different features, to better visualize the value distributions.
 #%%
 
 def create_bar(type, data, col, visible=False):
@@ -616,40 +630,31 @@ fig = dict(data=total_data, layout=layout)
 py.iplot(fig, filename='bar_slider')
 
 #%% [markdown]
-From the bar graph we can see that the `cap-shape` and the `cap-color` are not 
-that significant to classify a sample. On the other hand, some fields like `odor`
-show a distinct separation of the two classes; these ones will be the ones with more 
-impact on our classification algorithms.
-
-From these bar graphs we can see that our dataset is pretty well separated. This means
-that, in our classification task, we will be able to achieve high accuracy even with 
-some dimensionality reduction.
+# From the bar graph we can see that the `cap-shape` and the `cap-color` are not that significant to classify a sample. On the other hand, some fields like `odor` show a distinct separation of the two classes; these ones will be the ones with more impact on our classification algorithms.
+# 
+# From these bar graphs we can see that our dataset is pretty well separated. This means that, in our classification task, we will be able to achieve high accuracy even with some dimensionality reduction.
 
 #%% [markdown]
-### 7 - Correlation matrix
-A correlation matrix is a table showing correlation coefficients between sets of variables. 
-Each random variable (Xi) in the table is correlated with each of the other values in the table (Xj). 
-This allows you to see which pairs have the highest correlation.
-Correlation is any statistical association, though in common usage it most often refers 
-to how close two variables are to having a linear relationship with each other.
-
-We will use the **Pearson's correlation**, which is a measure of the linear correlation 
-between two variables X and Y. According to the Cauchy–Schwarz inequality it has a value between 
-+1 and −1, where 1 is total positive linear correlation, 0 is no linear correlation, and −1 is 
-total negative linear correlation.
-
-The coefficient for a population is computed as:
-$$
-\rho_{(X,Y)} = \frac{cov(X,Y)}{\sigma_X\sigma_Y}
-$$
-Where:
-- $cov$ is the covariance:
-    $$cov(X,Y) = \frac{E[(X - \mu_X)(Y-\mu_Y)]}{\sigma_X\sigma_Y}$$
-    - Where $\mu$ is the mean
-- $\sigma_X$ is the standard deviation of X
-    $$\sigma_X^2 = E[X^2] - [E[X]]^2$$
-- $\sigma_Y$ is the standard deviation of Y
-    $$\sigma_Y^2 = E[Y^2] - [E[Y]]^2$$
+# ### 7 - Correlation matrix
+# A correlation matrix is a table showing correlation coefficients between sets of variables. 
+# Each random variable (Xi) in the table is correlated with each of the other values in the table (Xj). 
+# This allows you to see which pairs have the highest correlation. Correlation is any statistical association, though in common usage it most often refers to how close two variables are to having a linear relationship with each other.
+# 
+# We will use the **Pearson's correlation**, which is a measure of the linear correlation between two variables X and Y. According to the Cauchy–Schwarz inequality it has a value between +1 and −1, where 1 is total positive linear correlation, 0 is no linear correlation, and −1 is total negative linear correlation.
+# 
+# The coefficient for a population is computed as:
+# $$
+# \rho_{(X,Y)} = \frac{cov(X,Y)}{\sigma_X\sigma_Y}
+# $$
+# Where:
+# - $cov$ is the covariance:
+#    $$cov(X,Y) = \frac{E[(X - \mu_X)(Y-\mu_Y)]}{\sigma_X\sigma_Y}$$
+#    - Where $\mu$ is the mean value  
+# 
+# - $\sigma_X$ is the standard deviation of X
+#     $$\sigma_X^2 = E[X^2] - [E[X]]^2$$
+# - $\sigma_Y$ is the standard deviation of Y
+#    $$\sigma_Y^2 = E[Y^2] - [E[Y]]^2$$
 
 
 #%%
@@ -681,25 +686,21 @@ fig = go.Figure(data=data, layout=layout)
 py.iplot(fig, filename='labelled-heatmap4')
 
 #%% [markdown]
-From the matrix, we can see that the most correlated columns to the class are 
-`gill-color`, `gill-size` and `bruises`.
-The diagonal has correlation 1 because every class has maximum correlation with itself.
-We can also see that `veil-color` and `gill-attachment`are highly correlated.
+# From the matrix, we can see that the most correlated columns to the class are `gill-color`, `gill-size` and `bruises`.
+#
+# The diagonal has correlation 1 because every class has maximum correlation with itself.
+#
+# We can also see that `veil-color` and `gill-attachment`are highly correlated.
 
-#%% 
-A dendrogram is a diagram representing a tree. This diagrammatic representation is frequently used 
-in different contexts, but we will see the case representing hierarchical clustering. 
-It illustrates the arrangement of the clusters, and its objective is to analyze if 
-we have any duplicate features.
-In order to reduce the dimensionality of our dataset, we can identify and remove duplicate features
-according to their pairwise correlation with others.
-
-The linkage criterion determines the distance between sets of observations as a function 
-of the pairwise distances between observations.
-We will use the between-group average linkage (UPGMA). Proximity between two clusters 
-is the arithmetic mean of all the proximities between the objects of one, on one side, 
-and the objects of the other, on the other side.
-The method is frequently set the default one in hierarhical clustering packages.
+#%% [markdown]
+# ### 7 - Dendogram
+# A **dendrogram** is a diagram representing a tree. This diagrammatic representation is frequently used in different contexts, but we will see the case representing hierarchical clustering. 
+#
+# It illustrates the arrangement of the clusters, and its objective is to analyze if we have any duplicate features. In order to reduce the dimensionality of our dataset, we can identify and remove duplicate features according to their pairwise correlation with others.
+# 
+# The linkage criterion determines the distance between sets of observations as a function of the pairwise distances between observations.
+# We will use the between-group average linkage (UPGMA). Proximity between two clusters is the arithmetic mean of all the proximities between the objects of one, on one side, and the objects of the other, on the other side.
+# The method is frequently set the default one in hierarhical clustering packages.
 
 #%% 
 
@@ -727,40 +728,32 @@ iplot(fig, filename='dendrogram_corr_clustering')
 
 
 #%% [markdown]
-From the above graph, the closest features are `veil-color` and `gill-attachment`.
-Because that their distance is still far from zero, I choose not to remove any of 
-the two features; moreover our dataset is pretty small, so we should not have 
-great performance issues.
+# From the above graph, the closest features are `veil-color` and `gill-attachment`.
+# Because that their distance is still far from zero, I choose not to remove any of the two features; moreover our dataset is pretty small, so we should not have great performance issues.
 
 #%% [markdown]
-### 8/9 - Scale and divide data
+# ### 8/9 - Scale and divide data
 
-Most of the times, datasets contain features highly varying in magnitudes, units and range. 
-But since, most of the machine learning algorithms use Eucledian distance between two data 
-points in their computations, this is a problem.
-If left alone, these algorithms only take in the magnitude of features neglecting the units. 
-The results would vary greatly between different units, for example between 
-5kg and 5000gms. The features with high magnitudes will weigh in a lot more in the 
-distance calculations than features with low magnitudes.
+# Most of the times, datasets contain features highly varying in magnitudes, units and range. 
+# But since, most of the machine learning algorithms use Eucledian distance between two data points in their computations, this is a problem. If left alone, these algorithms only take in the magnitude of features neglecting the units. The results would vary greatly between different units, for example between 5kg and 5000gms. 
+# 
+# The features with high magnitudes will weigh in a lot more in the distance calculations than features with low magnitudes.
+# To supress this effect, we need to bring all features to the same level of magnitudes. This can be acheived by scaling.
+# 
+# We will use the `StandardScaler`, which standardizes our data both with mean and standard deviation.
+#
+# The operation performed will be:
+#
+# $$
+# x' = \frac{x - \mu_x}{\sigma_x}
+# $$
 
-To supress this effect, we need to bring all features to the same level of 
-magnitudes. This can be acheived by scaling.
-
-We will use the StandardScaler, which standardizes our data 
-both with mean and standard deviation.
-The operation performed will be:
-
-$$
-x' = \frac{x - \mu_x}{\sigma_x}
-$$
-
-After this step, we divide the dataset into an array of unclassified samples
-and an array of labels, to use for the classification phase.
-
-At this point, I decide to bring to the next phase two different datasets:
-1. The full dataset, where the missing values are encoded with an integer
-2. A reduced version of the dataset, where the rows with missing data are considered
-as incomplete samples and are dropped. 
+# After this step, we divide the dataset into an array of unclassified samples and an array of labels, to use for the classification phase.
+# 
+# At this point, I decide to bring to the next phase two different datasets:  
+# 
+# 1. The full dataset, where the missing values are encoded with an integer.
+# 2. A reduced version of the dataset, where the rows with missing data are considered as incomplete samples and are dropped. 
 #%%
 
 def dataframe_to_array(data):
@@ -784,19 +777,12 @@ X_scaled_drop_data = scale_data(X_drop_data)
 
 #%% [markdown]
 
-## Principal component analysis
-When our data are represented by a matrix too large (the number of dimensions is too high), 
-it is difficult to extract the most interesting features and find correlations among them; 
-moreover the space occupied is very high. PCA is a technique that allows to achieve dimensionality 
-reduction while preserving the most important differences among samples. 
-
-This transformation is defined in such a way that the first principal component has the largest 
-possible variance (that is, accounts for as much of the variability in the data as possible), 
-and each succeeding component in turn has the highest variance possible under the constraint 
-that it is orthogonal to the preceding components. The resulting vectors (each being a linear 
-combination of the variables and containing n observations) are an uncorrelated orthogonal basis set.
-
-Let's calculate the Principal components and show their retained variance on a bar graph.
+# ## Principal component analysis
+# When our data are represented by a matrix too large (the number of dimensions is too high), it is difficult to extract the most interesting features and find correlations among them; moreover the space occupied is very high. PCA is a technique that allows to achieve dimensionality reduction while preserving the most important differences among samples. 
+# 
+# This transformation is defined in such a way that the first principal component has the largest possible variance (that is, accounts for as much of the variability in the data as possible), and each succeeding component in turn has the highest variance possible under the constraint that it is orthogonal to the preceding components. The resulting vectors (each being a linear combination of the variables and containing n observations) are an uncorrelated orthogonal basis set.
+#
+# Let's calculate the Principal Components and show their retained variance on a bar graph.
 #%% 
 
 pca = PCA(random_state=RANDOM_SEED)
@@ -848,13 +834,11 @@ fig = go.Figure(data=data, layout=layout)
 iplot(fig, filename='basic-bar')
 
 #%% [markdown]
-From the graph we can see that the first 9 components retain almost 80% of 
-total variance, while last 5 not even 2%. We then choose to select first 
-nine of them. This allows us to work on a smaller dataset achieving similar results, because
-most of the informaion is maintained.
-
-Let's now project our samples on the found components.
-
+# From the graph we can see that the first 9 components retain almost 80% of total variance, while last 5 not even 2%. We then choose to select first nine of them. 
+# 
+# This allows us to work on a smaller dataset achieving similar results, because most of the informaion is maintained.
+# 
+# Let's now project our samples on the found components.
 #%%
 
 n_comp = 9
@@ -921,34 +905,25 @@ iplot(fig, filename='clusters-scatter')
 '''
 #%% [markdown]
 
-TODO: give some impressions on the clustered data
-Using K-means we are able to separate two classes using the two components with 
-maximum variance.
-
+# Using K-means we are able to separate two classes using the two components with maximum variance.
 #%% [markdown]
 
 ## Classification
-Now we are going to explore different classification methods, 
-and see in the end the one that performs better. 
-
-Now, before starting the classification phase, let's see what kind of pre-processed
-data it is better to use to achieve the best classification possible.
-Due to the fact that our dataset is pretty small, probably the dimensionality reduction
-using PCA is not strictly necessary, but if we can achieve a similar score using just
-main principal components, it is definitely better.
-
-We are going to compare results of a classification method on the different datasets.
-In this way we can choose the one to pick for the 
-next phase. The  current versions of the dataset are:
-
-    1. Full dataset
-    2. Dataset with missing values removed
-    3. Reduced dataset by means of PCA.
-
-Our dataset is pretty balanced, so we do not need any over or under-sampling
-technique. If we will perform poorly in classification, we could try to use some
-ensemble learning methods, but they should not be necessary.
-Let's start with splitting the datasets in train and test.
+# Now we are going to explore different classification methods, and see in the end the one that performs better. 
+#
+# Now, before starting the classification phase, let's see what kind of pre-processed data it is better to use to achieve the best classification possible.
+# Due to the fact that our dataset is pretty small, probably the dimensionality reduction using PCA is not strictly necessary, but if we can achieve a similar score using just main principal components, it is definitely better.
+#
+# We are going to compare results of a classification method on the different datasets. In this way we can choose the one to pick for the next phase. 
+# The current versions of the dataset are:
+#
+# 1. Full dataset.
+# 2. Dataset with missing values removed.
+# 3. Reduced dataset by means of PCA.
+#
+#
+# Our dataset is pretty balanced, so we do not need any over or under-sampling technique. If we will perform poorly in classification, we could try to use some ensemble learning methods, but they should not be necessary.
+# Let's start with splitting the datasets in train and test.
 
 #%%
 
@@ -957,9 +932,9 @@ X_train_pc, X_test_pc, y_train_pc, y_test_pc = train_test_split(X_df_reduced, y_
 X_train_drop, X_test_drop, y_train_drop, y_test_drop = train_test_split(X_scaled_drop_data, y_drop_data, test_size=0.2, random_state=RANDOM_SEED)
 
 #%% [markdown]
-The method used to pick the "best" dataset will be Logistic Regression, and we will 
-tune its parameters using a grid search cross validation. 
-Let's start defining the functions that we are going to use:
+# The method used to pick the "best" dataset will be Logistic Regression, and we will tune its parameters using a grid search cross validation. 
+# 
+# Let's start defining the functions that we are going to use:
 
 #%%
 
@@ -1304,34 +1279,31 @@ def print_performances(classifiers, classifier_names, auc_scores, X_test, y_test
 
 #%% [markdown]
 
-Let's start defining the Stratified K-Folds cross-validator; it provides train/test 
-indices to split data in train/test sets.
-This cross-validation object is a variation of KFold that returns stratified folds. 
-The folds are made by preserving the percentage of samples for each class. Stratification is generally a better scheme, 
-both in terms of bias and variance, when compared to regular cross-validation.
-
-Then we define our LogisticRegression classifier, setting the `random_state` parameter
-to our usual seed value, in such a way that we can classify each time in the same way.
+# Let's start defining the Stratified K-Folds cross-validator; it provides train/test indices to split data in train/test sets.
+#
+# This cross-validation object is a variation of KFold that returns stratified folds. The folds are made by preserving the percentage of samples for each class. Stratification is generally a better scheme, both in terms of bias and variance, when compared to regular cross-validation.
+#
+# Then we define our LogisticRegression classifier, setting the `random_state` parameter to our usual seed value, in such a way that we can classify each time in the same way.
 #%% 
 kf = StratifiedKFold(n_splits=5, random_state=RANDOM_SEED)
 clf_lr = LogisticRegression(random_state=RANDOM_SEED)
 
 #%% [markdown]
-Then we perform a grid search over all the parameters of the LogisticRegressor model.
-They are:
-    - `liblinear` for solver, which is better for smaller datasets
-    - `C` different values of this, ranging from 0.01 to 100. A smaller value inidicates stronger regularization, like in svms.
-    - `penalty` l1 and l2 penalty for regularization, which are defined as:
-
-        - L1, it penalizes every mistake at the same way
-            $$ 
-            S = \Sigma_{i=1}^{n}{|y_i - f(x_i)|}
-            $$
-        - L2, it penalizes more bigger values
-            $$ 
-            S = \Sigma_{i=1}^{n}{(y_i - f(x_i))^2}
-            $$
-        Where $y_i$ is the true label and $f(x_i)$ is the assigned label
+# Then we perform a grid search over all the parameters of the LogisticRegressor model.
+#
+# They are:
+# - `liblinear` for solver, which is better for smaller datasets
+# - `C` different values of this, ranging from 0.01 to 100. A smaller value inidicates stronger regularization, like in svms.
+# - `penalty` "l1" and "l2" penalty for regularization, which are defined as:
+#   - l1, it penalizes every mistake at the same way
+#     $$ 
+#     S = \Sigma_{i=1}^{n}{|y_i - f(x_i)|}
+#     $$
+#   - l2, it penalizes bigger values
+#     $$ 
+#     S = \Sigma_{i=1}^{n}{(y_i - f(x_i))^2}
+#     $$
+#     - Where $y_i$ is the true label and $f(x_i)$ is the assigned label
 
 
 #%%
@@ -1362,7 +1334,7 @@ test_results_balanced = score(gss_balanced, [(X_test, y_test), (X_test_pc, y_tes
 X_train.shape
 
 #%% [markdown]
-This is the score of the different classification on the test set:
+# This is the score of the different classification on the test set:
 #%%
 dataset_strings = ["full dataset", "dataset with first 9 principal components", "dataset with dropped missing values"]
 method_strings = ["without any balancing"]
@@ -1384,8 +1356,7 @@ t.title = "F1 score  dataset and method"
 print(t)
 
 #%% [markdown]
-So the dataset we will use for all the classification methods will be 
-the one with missing values removed.
+# So the dataset we will use for all the classification methods will be the one with missing values removed.
 
 #%%
 print_gridcv_scores(gs_drop)
@@ -1400,7 +1371,7 @@ plot_learning_curve(gs_drop.best_estimator_, "Learning Curve of Logistic Regress
                     cv=5)
 
 #%% [markdown]
-### Support vector machine
+# ### Support vector machine
 
 #%%
 clf_svm = SVC(probability=True, random_state=RANDOM_SEED)
@@ -1416,10 +1387,7 @@ plot_learning_curve(gs_pc_svm.best_estimator_, "Learning curve of SVM",
 #%%
 print_confusion_matrix(gs_pc_svm, X_test_pc, y_test_pc)
 #%% [markdown]
-We can notice that most of the times, the only mistakes are
-poisonous mushrooms classified as edible. These mistakes weight
-must be much higher with respect to an edible mushroom classified as
-poisonous, because there is not any danger in that case.
+# We can notice that most of the times, the only mistakes are poisonous mushrooms classified as edible. These mistakes weight must be much higher with respect to an edible mushroom classified as poisonous, because there is not any danger in that case.
 
 #%%
 clf_nb = GaussianNB()
@@ -1491,7 +1459,7 @@ plot_learning_curve(gs_knn.best_estimator_, "Learning curve of Random Forest Cla
 
 
 #%% [markdown]
-The K-NN classification with the whole dataset gives the same result but it takes more than 7 times more time
+# The K-NN classification with the whole dataset gives the same result but it takes more than 7 times more time
 
 #%%
 
@@ -1572,11 +1540,7 @@ print_performances(classifiers, classifier_names, auc_scores, X_test_pc, y_test_
 
 #%% [markdown]
 
-To have a little bit more fun we will try one more thing. Due to the fact that some 
-charateristics of mushrooms are subjective, like odor for example, and some others need 
-more advanced analysis, like spore print, we will try to use our best-performing 
-classification algorithm on a reduced version of the dataset, keeping only the features 
-understendable by every person without the need of any specific equipment of knowledge.
+# To have a little bit more fun we will try one more thing. Due to the fact that some charateristics of mushrooms are subjective, like odor for example, and some others need more advanced analysis, like spore print, we will try to use our best-performing classification algorithm on a reduced version of the dataset, keeping only the features understendable by every person without the need of any specific equipment of knowledge.
 
 #%%
 pre_data.columns
@@ -1619,6 +1583,4 @@ plot_learning_curve(gs_pc_svm.best_estimator_, "Learning curve of SVM",
 print_confusion_matrix(gs_pc_svm, X_test_vis, y_test_vis)
 
 #%% [markdown]
-
-SVM performs really well also in this case. Those mushrooms are easily
-classified by our model.
+# SVM performs really well also in this case. Those mushrooms are easily classified by our model.
