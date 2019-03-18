@@ -124,6 +124,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
 from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
 
 import plotly
 import plotly.plotly as py
@@ -431,9 +432,7 @@ data = [go.Bar(
     )]
 
 layout = go.Layout(title="Class distribution",
-                   autosize=False,
-                   width=400,
-                   height=400,
+                   autosize=True,
                    yaxis=dict(
                         title='N. samples',
                     ),
@@ -517,8 +516,7 @@ sliders = [dict(
 
 layout = dict(
     sliders=sliders,
-    height=500,
-    width=600,
+    autosize=True,
     yaxis=dict(
         title='value',
         automargin=True,
@@ -600,8 +598,7 @@ sliders = [dict(
 
 layout = dict(
     sliders=sliders,
-    height=500,
-    width=600,
+    autosize=True,
     yaxis=dict(
         title='value',
         automargin=True,
@@ -786,8 +783,20 @@ X_drop_data, y_drop_data = dataframe_to_array(drop_data)
 X_drop_data = scale_data(X_drop_data)
 
 #%% [markdown]
-TODO: introduce PCA
 
+## Principal component analysis
+When our data are represented by a matrix too large (the number of dimensions is too high), 
+it is difficult to extract the most interesting features and find correlations among them; 
+moreover the space occupied is very high. PCA is a technique that allows to achieve dimensionality 
+reduction while preserving the most important differences among samples. 
+
+This transformation is defined in such a way that the first principal component has the largest 
+possible variance (that is, accounts for as much of the variability in the data as possible), 
+and each succeeding component in turn has the highest variance possible under the constraint 
+that it is orthogonal to the preceding components. The resulting vectors (each being a linear 
+combination of the variables and containing n observations) are an uncorrelated orthogonal basis set.
+
+Let's calculate the Principal components and show their retained variance on a bar graph.
 #%% 
 
 pca = PCA(random_state=RANDOM_SEED)
@@ -796,8 +805,6 @@ projected_data = pca.fit_transform(X_scaled_data)
 tot_var = np.sum(pca.explained_variance_)
 ex_var = [(i / tot_var) * 100 for i in sorted(pca.explained_variance_, reverse=True)]
 cum_ex_var = np.cumsum(ex_var)
-
-
 
 #%%
 cum_var_bar = go.Bar(
@@ -843,9 +850,10 @@ iplot(fig, filename='basic-bar')
 #%% [markdown]
 From the graph we can see that the first 9 components retain almost 80% of 
 total variance, while last 5 not even 2%. We then choose to select first 
-nine of them.
+nine of them. This allows us to work on a smaller dataset achieving similar results, because
+most of the informaion is maintained.
 
-This is the reduced dataset:
+Let's now project our samples on the found components.
 
 #%%
 
@@ -854,10 +862,9 @@ pca.components_ = pca.components_[:n_comp]
 reduced_data = np.dot(projected_data, pca.components_.T)
 # pca.inverse_transform(projected_data)
 X_df_reduced = pd.DataFrame(reduced_data, columns=["PC#%d" % (x + 1) for x in range(n_comp)])
+X_df_reduced.head(4)
 
 #%% 
-
-from sklearn.cluster import KMeans
 
 N=pre_data.values
 pca = PCA(n_components=2)
@@ -865,7 +872,6 @@ x = pca.fit_transform(N)
 
 kmeans = KMeans(n_clusters=2, random_state=RANDOM_SEED)
 X_clustered = kmeans.fit_predict(N)
-print(kmeans.score)
 
 ed_idx = np.where(X_clustered == 0)
 po_idx = np.where(X_clustered == 1)
