@@ -865,13 +865,15 @@ X_df_reduced = pd.DataFrame(reduced_data, columns=["PC#%d" % (x + 1) for x in ra
 X_df_reduced.head(4)
 
 #%% 
-
+'''
 N=pre_data.values
 pca = PCA(n_components=2)
 x = pca.fit_transform(N)
 
 kmeans = KMeans(n_clusters=2, random_state=RANDOM_SEED)
 X_clustered = kmeans.fit_predict(N)
+print(len(np.where(X_clustered == 0)[0]))
+print(len(np.where(X_clustered == 1)[0]))
 
 ed_idx = np.where(X_clustered == 0)
 po_idx = np.where(X_clustered == 1)
@@ -916,42 +918,37 @@ layout = go.Layout(
 )
 fig = go.Figure(data=data, layout=layout)
 iplot(fig, filename='clusters-scatter')
-
+'''
 #%% [markdown]
 
 TODO: give some impressions on the clustered data
-
-Using K-means we are able to separate two classes using the two components with maximum variance.
+Using K-means we are able to separate two classes using the two components with 
+maximum variance.
 
 #%% [markdown]
 
 ## Classification
-Now we are going to explore different classification methods, and see in the end the one that performs better
+Now we are going to explore different classification methods, 
+and see in the end the one that performs better. 
 
-#%% [markdown]
 Now, before starting the classification phase, let's see what kind of pre-processed
 data it is better to use to achieve the best classification possible.
 Due to the fact that our dataset is pretty small, probably the dimensionality reduction
-using PCA is not necessary.
+using PCA is not strictly necessary, but if we can achieve a similar score using just
+main principal components, it is definitely better.
 
 We are going to compare results of a classification method on the different datasets.
 In this way we can choose the one to pick for the 
 next phase. The  current versions of the dataset are:
 
-- Full dataset
-- Dataset reduced using first 9 principal components
-- Full dataset with missing values removed (question marks in the stalk-root field)
+    1. Full dataset
+    2. Dataset with missing values removed
+    3. Reduced dataset by means of PCA.
 
 Our dataset is pretty balanced, so we do not need any over or under-sampling
-technique. If we will perform poorly in classification, we could try to use
-ensemble learning methods.
+technique. If we will perform poorly in classification, we could try to use some
+ensemble learning methods, but they should not be necessary.
 Let's start with splitting the datasets in train and test.
-
-Bagging, boosting and ensemble learning models
-> https://www.analyticsvidhya.com/blog/2018/06/comprehensive-guide-for-ensemble-models/
-> MSMOTE
-> Over-Under sampling 
-> SMOTE
 
 #%%
 
@@ -960,14 +957,20 @@ X_train_pc, X_test_pc, y_train_pc, y_test_pc = train_test_split(X_df_reduced, y_
 X_train_drop, X_test_drop, y_train_drop, y_test_drop = train_test_split(X_scaled_drop_data, y_drop_data, test_size=0.2, random_state=RANDOM_SEED)
 
 #%% [markdown]
-The first method used will be Logistic Regression, and we will tune its parameters
-using a grid search cross validation. Let's start defining the functions
-that we are going to use:
+The method used to pick the "best" dataset will be Logistic Regression, and we will 
+tune its parameters using a grid search cross validation. 
+Let's start defining the functions that we are going to use:
 
 #%%
 
 def print_gridcv_scores(grid_search, n=5):
-    
+    """
+    Prints the best score achieved by a grid_search, alongside with its parametes
+
+    :param (estimator) clf: Classifier object
+    :param (int) n: Best n scores 
+    """    
+
     if not hasattr(grid_search, 'best_score_'):
         raise KeyError('grid_search is not fitted.')
     
@@ -987,6 +990,15 @@ def print_gridcv_scores(grid_search, n=5):
                
 @watcher
 def param_tune_grid_cv(clf, params, X_train, y_train, cv):
+    """
+    Function that performs a grid search over some parameters
+
+    :param (estimator) clf: Classifier object
+    :param (dictionary) params: parameters to be tested in grid search
+    :param (array-like) X_train: List of data to be trained with
+    :param (array-like) y_train: Target relative to X for classification or regression
+    :param (cross-validation generator) cv: Determines the cross-validation splitting strategy
+    """   
     pipeline = Pipeline([('clf', clf)])
     grid_search = GridSearchCV(estimator=pipeline, 
                                param_grid=params, 
@@ -999,6 +1011,13 @@ def param_tune_grid_cv(clf, params, X_train, y_train, cv):
    
 
 def score(clfs, datasets):
+    """
+    Function that scores a classifier on some data
+    
+    :param (array of estimator) clf: Array of classifiers
+    :param (dictionary) params: Dictionary of test data, passed like [(X_test, y_test)]
+
+    """  
     scores = []
     for c, (X_test, y_test) in zip(clfs, datasets):
         scores.append(c.score(X_test, y_test))
@@ -1007,6 +1026,15 @@ def score(clfs, datasets):
 
 
 def hexToRGBA(hex, alpha):
+
+    """
+    Function that returns an rgba value from an hex and an opacity value
+    
+    :param (String) clf: Hex value 
+    :param (float) params: Value between 0 and 1 indicating opacity
+
+    """  
+
     r = int(hex[1:3], 16)
     g = int(hex[3:5], 16)
     b = int(hex[5:], 16)
@@ -1175,6 +1203,14 @@ def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=
 
 def print_confusion_matrix(gs, X_test, y_test):
 
+    """
+    Function that prints confusion matrix for a classifier
+    
+    :param (estimator) clf: Classifier object
+    :param (array-like) X_test: List of data to be tested with
+    :param (array-like) y_test: List of labels for test 
+    """  
+
     gs_score = gs.score(X_test, y_test)
     y_pred = gs.predict(X_test)
 
@@ -1191,10 +1227,26 @@ def print_confusion_matrix(gs, X_test, y_test):
 
 
 def print_raw_score(clf, X_test, y_test):
+    """
+    Function that scores a classifier on some data
+    
+    :param (array of estimator) clf: Array of classifiers
+    :param (array-like) X_test: List of data to be tested with
+    :param (array-like) y_test: List of labels for test 
+
+    """  
     print("Score achieved by NB: %0.3f" % (score([clf], [(X_test, y_test)])[0]))
 
 
 def plot_feature_importance(feature_importance, title):
+    """
+    Function that plots feature importance for a decision tree or a random forest classifier
+    
+    :param (dictionary) feature_importance: Dictionary of most important features sorted
+    :param (str) title: Title of the plot
+
+    """ 
+    
     trace1 = go.Bar(
         x=feature_importance[:, 0],
         y=feature_importance[:, 1],
@@ -1221,21 +1273,33 @@ def plot_feature_importance(feature_importance, title):
 
 
 def print_performances(classifiers, classifier_names, auc_scores, X_test, y_test):
-  accs = []
-  recalls = []
-  precision = []
-  results_table = pd.DataFrame(columns=["accuracy", "precision", "recall", "f1", "auc"])
-  for (i, clf), name, auc in zip(enumerate(classifiers), classifier_names, auc_scores):
-      y_pred = clf.predict(X_test)
-      row = []
-      row.append(accuracy_score(y_test, y_pred))
-      row.append(precision_score(y_test, y_pred))
-      row.append(recall_score(y_test, y_pred))
-      row.append(f1_score(y_test, y_pred))
-      row.append(auc)
-      row = ["%.3f" % r for r in row]
-      results_table.loc[name] = row
-  return results_table
+  
+    """
+    Function that scores a classifier on some data
+    
+    :param (array of estimator) clf: Array of classifiers
+    :param (array-like) classifier_names: Title of the classifier
+    :param (array-like) auc-score: Auc scores
+    :param (array-like) X_test: List of data to be tested with
+    :param (array-like) y_test: List of labels for test 
+
+    """ 
+
+    accs = []
+    recalls = []
+    precision = []
+    results_table = pd.DataFrame(columns=["accuracy", "precision", "recall", "f1", "auc"])
+    for (i, clf), name, auc in zip(enumerate(classifiers), classifier_names, auc_scores):
+        y_pred = clf.predict(X_test)
+        row = []
+        row.append(accuracy_score(y_test, y_pred))
+        row.append(precision_score(y_test, y_pred))
+        row.append(recall_score(y_test, y_pred))
+        row.append(f1_score(y_test, y_pred))
+        row.append(auc)
+        row = ["%.3f" % r for r in row]
+        results_table.loc[name] = row
+    return results_table
 
 #%% 
 kf = StratifiedKFold(n_splits=5, random_state=RANDOM_SEED)
