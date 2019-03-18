@@ -780,7 +780,7 @@ X_pre_data, y_data = dataframe_to_array(pre_data)
 X_scaled_data = scale_data(X_pre_data)
 
 X_drop_data, y_drop_data = dataframe_to_array(drop_data)
-X_drop_data = scale_data(X_drop_data)
+X_scaled_drop_data = scale_data(X_drop_data)
 
 #%% [markdown]
 
@@ -1301,10 +1301,37 @@ def print_performances(classifiers, classifier_names, auc_scores, X_test, y_test
         results_table.loc[name] = row
     return results_table
 
+
+#%% [markdown]
+
+Let's start defining the Stratified K-Folds cross-validator; it provides train/test 
+indices to split data in train/test sets.
+This cross-validation object is a variation of KFold that returns stratified folds. 
+The folds are made by preserving the percentage of samples for each class. Stratification is generally a better scheme, 
+both in terms of bias and variance, when compared to regular cross-validation.
+
+Then we define our LogisticRegression classifier, setting the `random_state` parameter
+to our usual seed value, in such a way that we can classify each time in the same way.
 #%% 
 kf = StratifiedKFold(n_splits=5, random_state=RANDOM_SEED)
 clf_lr = LogisticRegression(random_state=RANDOM_SEED)
-clf_lr_balanced = LogisticRegression(random_state=RANDOM_SEED, class_weight="balanced")
+
+#%% [markdown]
+Then we perform a grid search over all the parameters of the LogisticRegressor model.
+They are:
+    - `liblinear` for solver, which is better for smaller datasets
+    - `C` different values of this, ranging from 0.01 to 100. A smaller value inidicates stronger regularization, like in svms.
+    - `penalty` l1 and l2 penalty for regularization, which are defined as:
+
+        - L1, it penalizes every mistake at the same way
+            $$ 
+            S = \Sigma_{i=1}^{n}{|y_i - f(x_i)|}
+            $$
+        - L2, it penalizes more bigger values
+            $$ 
+            S = \Sigma_{i=1}^{n}{(y_i - f(x_i))^2}
+            $$
+        Where $y_i$ is the true label and $f(x_i)$ is the assigned label
 
 
 #%%
@@ -1334,6 +1361,8 @@ test_results_balanced = score(gss_balanced, [(X_test, y_test), (X_test_pc, y_tes
 #%% 
 X_train.shape
 
+#%% [markdown]
+This is the score of the different classification on the test set:
 #%%
 dataset_strings = ["full dataset", "dataset with first 9 principal components", "dataset with dropped missing values"]
 method_strings = ["without any balancing"]
