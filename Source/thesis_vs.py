@@ -124,7 +124,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder, StandardScaler, OneHotEncoder
 from sklearn.model_selection import train_test_split, KFold, StratifiedKFold, GridSearchCV, learning_curve
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss, confusion_matrix, roc_curve, auc, roc_auc_score, accuracy_score, f1_score, precision_score, recall_score
@@ -134,6 +134,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.utils import shuffle
 
 import plotly
 import plotly.plotly as py
@@ -147,12 +148,14 @@ import scipy.spatial as scs
 from imblearn.pipeline import make_pipeline, Pipeline
 from imblearn.over_sampling import SMOTE
 
+import warnings
+from collections import defaultdict
 from prettytable import PrettyTable
 from functools import wraps
 import time
 
 plotly.tools.set_credentials_file(username='modusV', api_key='OBKKnTR2vYTeKIOKtRU6')
-
+warnings.filterwarnings("ignore")
 #%%
 
 # Wrapper to calculate functions speed
@@ -338,16 +341,23 @@ else:
 
 #%%
 print("There are " + str((dataset['stalk-root'] == "?").sum()) + " missing values in stalk-root column")
-# df_drop = dataset[dataset['stalk-root'] != "?"]
 
 #%% [markdown]
 # More than 25% of our samples is incomplete. Dropping all those rows may lead to a shortage of samples.
 # This is why we will use the two approaches and see which one performs better.
+# In any case, we will replace those value with another character. 
+# We will use the character `m` to indicate a missing value
+
+#%%
+
+dataset['stalk-root'] = dataset['stalk-root'].replace({"?": "m"})
+print(dataset['stalk-root'].unique())
 
 #%% [markdown]
 # ### 4 - Encode string values
 # As already said, we need to encode all the string values into integers, in such a way to continue our analysis in a more easy way. 
 #%%
+
 def encode_values(dataset):
     """
     Encode string values of a dataset using numbers
@@ -385,8 +395,6 @@ def print_encoding(mapping):
     t.field_names = ["Columns / Values"] + list(range(0, len(max)-1))
     print(t)
 
-
-
 le = 0
 pre_data, l_encoder, le_mapping = encode_values(dataset)
 
@@ -397,7 +405,60 @@ print_encoding(le_mapping)
 pre_data.head(5)
 
 #%% [markdown]
-# As we can see data have been transformed; all the strings values now are equal to integers, and we can see the direct corrispondence from the table above.
+# As we can see data have been transformed; all the strings values now are equal to integers, 
+# and we can see the direct corrispondence from the table above.
+#
+# We have encoded our dataset but, depending on the data (as in our case), label encoding may 
+# introduce a new problem. For example, we have encoded a set of colour names 
+# into numerical data. This is actually categorical data and there is no relation, 
+# of any kind, between the rows. 
+# 
+# The problem here is, since there are different numbers in the same column, 
+# the model will misunderstand the data to be in some kind of order, 0 < 1 < 2. 
+# But this isn’t the case at all. To overcome this problem, we use One Hot Encoder.
+#
+# What one hot encoding does is, it takes a column which has categorical data, 
+# which has been label encoded, and then splits the column into multiple columns. 
+# The numbers are replaced by 1s and 0s, depending on which column has what value.
+# 
+# We will obtain two datasets; we will continue the analysis on the first one, but
+# meanwhile we will keep this one for the classification phase, to check if we 
+# may have an improvement.
+# 
+# We also drop the column with missing value, beacuse it is not significative.
+#%%
+
+def one_hot_encode(X_dataset):
+
+    ohc = defaultdict(OneHotEncoder)
+    d = defaultdict (LabelEncoder)
+    Xfit = X_dataset.apply(lambda x: d[x.name].fit_transform(x))
+    final = pd.DataFrame()
+
+    for i in range(len(X_dataset.columns)):
+        # Transform columns using OneHotEncoder
+        Xtemp_i = pd.DataFrame(ohc[Xfit.columns[i]].fit_transform(Xfit.iloc[:,i:i+1]).toarray())
+    
+        # Naming the columns
+        ohc_obj  = ohc[Xfit.columns[i]]
+        labelEncoder_i= d[Xfit.columns[i]]
+        Xtemp_i.columns= Xfit.columns[i]+"-"+labelEncoder_i.inverse_transform(ohc_obj.active_features_)
+        
+        # Take care of dummy variable trap dropping of new coulmns
+        X_ohc_i = Xtemp_i.iloc[:,1:]
+        
+        # Append columns to dataframe
+        final = pd.concat([final,X_ohc_i],axis=1)
+
+    return final
+
+pre_ohc_data = one_hot_encode(dataset.iloc[:,1:])
+pre_ohc_data.drop(['stalk-root-m'], axis=1, inplace=True)
+pre_ohc_data.head(5)
+
+TODO: PCA THE SHIT OUT OF THIS AND TRY THE TWO CLASSIFICATIONS
+#%% [markdown]
+# As we can see, we obtained a huge dataset, where all the fields are binary.
 
 #%% [markdown]
 
@@ -728,7 +789,6 @@ fig['layout'].update(dict(
 ))
 iplot(fig, filename='dendrogram_corr_clustering')
 
-
 #%% [markdown]
 # From the above graph, the closest features are `veil-color` and `gill-attachment`.
 # Because that their distance is still far from zero, I choose not to remove any of the two features; moreover our dataset is pretty small, so we should not have great performance issues.
@@ -764,18 +824,25 @@ def dataframe_to_array(data):
     return X_data, y_data
 
 def scale_data(X_data):
+    """
+
+    """
     scaler = StandardScaler(with_mean=True, with_std=True, copy=True)
     return scaler.fit_transform(X_data)
 
 #%%
 
-drop_data = pre_data[pre_data['stalk-root'] != le_mapping['stalk-root']['?']]
+drop_data = pre_data[pre_data['stalk-root'] != le_mapping['stalk-root']['m']]
+data_no_stalk = pre_data.drop(['stalk-root'], axis=1)
 
 X_pre_data, y_data = dataframe_to_array(pre_data)
 X_scaled_data = scale_data(X_pre_data)
 
 X_drop_data, y_drop_data = dataframe_to_array(drop_data)
 X_scaled_drop_data = scale_data(X_drop_data)
+
+X_no_stalk, y_no_stalk = dataframe_to_array(data_no_stalk)
+X_scaled_no_stalk = scale_data(X_no_stalk)
 
 #%% [markdown]
 
@@ -786,70 +853,99 @@ X_scaled_drop_data = scale_data(X_drop_data)
 #
 # Let's calculate the Principal Components and show their retained variance on a bar graph.
 #%% 
+def plot_cumulative_variance(pca):
+    """
+    Plots cumulative variance of all PC
 
-pca = PCA(random_state=RANDOM_SEED)
-projected_data = pca.fit_transform(X_scaled_data)
+    :param (pca object) pca: Pca object
+    """   
 
-tot_var = np.sum(pca.explained_variance_)
-ex_var = [(i / tot_var) * 100 for i in sorted(pca.explained_variance_, reverse=True)]
-cum_ex_var = np.cumsum(ex_var)
+    tot_var = np.sum(pca.explained_variance_)
+    ex_var = [(i / tot_var) * 100 for i in sorted(pca.explained_variance_, reverse=True)]
+    cum_ex_var = np.cumsum(ex_var)
 
+    cum_var_bar = go.Bar(
+        x=list(range(1, len(cum_ex_var) + 1)), 
+        y=ex_var,
+        name="Variance of each component",
+        marker=dict(
+            color=PLOTLY_COLORS[0],
+        ),
+        opacity=PLOTLY_OPACITY
+        )
+
+    variance_line = go.Scatter(
+        x=list(range(1, len(cum_ex_var) + 1)),
+        y=cum_ex_var,
+        mode='lines+markers',
+        name="Cumulative variance",
+        marker=dict(
+            color=PLOTLY_COLORS[1],
+        ),
+        opacity=PLOTLY_OPACITY,
+        line=dict(
+            shape='hv',
+        ))
+    data = [cum_var_bar, variance_line]
+    layout = go.Layout(
+        title='Individual and Cumulative Explained Variance',
+        autosize=True,
+        yaxis=dict(
+            title='Explained variance (%)',
+        ),
+        xaxis=dict(
+            title="Principal components",
+            dtick=1,
+        ),
+        legend=dict(
+            x=0,
+            y=1,
+        ),
+    )
+    fig = go.Figure(data=data, layout=layout)
+    iplot(fig, filename='basic-bar')
+
+def compress_data(X_dataset, n_components, plot_comp=False):
+    
+    """
+    Performs pca reduction of a dataset.
+
+    :param (array of arrays) X_dataset: Dataset to reduce
+    :param (int) n_components: N components to project on 
+    :param (bool) plot_comp: Plot explained variance
+
+    :returns (pandas dataframe) X_df_reduced: pandas dataframe with reduced dataset
+    """   
+
+    pca = PCA(random_state=RANDOM_SEED)
+    projected_data = pca.fit_transform(X_dataset)
+
+    if plot_comp:
+        plot_cumulative_variance(pca)
+
+    n_comp = n_components
+    pca.components_ = pca.components_[:n_comp]
+    reduced_data = np.dot(projected_data, pca.components_.T)
+    X_df_reduced = pd.DataFrame(reduced_data, columns=["PC#%d" % (x + 1) for x in range(n_comp)])
+    return X_df_reduced
+    
 #%%
-cum_var_bar = go.Bar(
-    x=list(range(1, len(cum_ex_var) + 1)), 
-    y=ex_var,
-    name="Variance of each component",
-    marker=dict(
-        color=PLOTLY_COLORS[0],
-    ),
-    opacity=PLOTLY_OPACITY
-)
-variance_line = go.Scatter(
-    x=list(range(1, len(cum_ex_var) + 1)),
-    y=cum_ex_var,
-    mode='lines+markers',
-    name="Cumulative variance",
-    marker=dict(
-        color=PLOTLY_COLORS[1],
-    ),
-    opacity=PLOTLY_OPACITY,
-    line=dict(
-        shape='hv',
-    ))
-data = [cum_var_bar, variance_line]
-layout = go.Layout(
-    title='Individual and Cumulative Explained Variance',
-    autosize=True,
-    yaxis=dict(
-        title='Explained variance (%)',
-    ),
-    xaxis=dict(
-        title="Principal components",
-        dtick=1,
-    ),
-    legend=dict(
-        x=0,
-        y=1,
-    ),
-)
-fig = go.Figure(data=data, layout=layout)
-iplot(fig, filename='basic-bar')
 
+X_df_reduced = compress_data(X_dataset=X_scaled_data,
+                             n_components=9,
+                             plot_comp=True)
+
+X_df_drop_reduced = compress_data(X_dataset=X_scaled_drop_data,
+                                  n_components=9,
+                                  plot_comp=False)
+
+X_df_reduced.head(4)
 #%% [markdown]
 # From the graph we can see that the first 9 components retain almost 80% of total variance, while last 5 not even 2%. We then choose to select first nine of them. 
 # 
 # This allows us to work on a smaller dataset achieving similar results, because most of the informaion is maintained.
 # 
 # Let's now project our samples on the found components.
-#%%
-
-n_comp = 9
-pca.components_ = pca.components_[:n_comp]
-reduced_data = np.dot(projected_data, pca.components_.T)
-# pca.inverse_transform(projected_data)
-X_df_reduced = pd.DataFrame(reduced_data, columns=["PC#%d" % (x + 1) for x in range(n_comp)])
-X_df_reduced.head(4)
-
 #%% 
 '''
 N=pre_data.values
@@ -932,6 +1028,8 @@ iplot(fig, filename='clusters-scatter')
 X_train, X_test, y_train, y_test = train_test_split(X_scaled_data, y_data, test_size=0.2, random_state=RANDOM_SEED)
 X_train_pc, X_test_pc, y_train_pc, y_test_pc = train_test_split(X_df_reduced, y_data, test_size=0.2, random_state=RANDOM_SEED)
 X_train_drop, X_test_drop, y_train_drop, y_test_drop = train_test_split(X_scaled_drop_data, y_drop_data, test_size=0.2, random_state=RANDOM_SEED)
+X_train_pc_drop, X_test_pc_drop, y_train_pc_drop, y_test_pc_drop = train_test_split(X_df_drop_reduced, y_drop_data, test_size=0.2, random_state=RANDOM_SEED)
+X_train_no_stalk, X_test_no_stalk, y_train_no_stalk, y_test_no_stalk = train_test_split(X_scaled_no_stalk, y_no_stalk, test_size=0.2, random_state=RANDOM_SEED)
 
 #%% [markdown]
 # The method used to pick the "best" dataset will be Logistic Regression, and we will tune its parameters using a grid search cross validation. 
@@ -1074,8 +1172,14 @@ def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=
         (default: np.linspace(0.1, 1.0, 5))
     """
     
-    train_sizes, train_scores, test_scores = learning_curve(
-        estimator, X, y, cv=cv, n_jobs=n_jobs, train_sizes=train_sizes, scoring="f1", random_state=RANDOM_SEED)
+    train_sizes, train_scores, test_scores = learning_curve(estimator, 
+                                                            X, 
+                                                            y, 
+                                                            cv=cv, 
+                                                            n_jobs=n_jobs, 
+                                                            train_sizes=train_sizes, 
+                                                            scoring="f1", 
+                                                            random_state=RANDOM_SEED)
     train_scores_mean = np.mean(train_scores, axis=1)
     train_scores_std = np.std(train_scores, axis=1)
     test_scores_mean = np.mean(test_scores, axis=1)
@@ -1310,36 +1414,48 @@ clf_lr = LogisticRegression(random_state=RANDOM_SEED)
 
 #%%
 
+X_train, y_train = shuffle(X_train, y_train, random_state=RANDOM_SEED)
+X_train_drop, y_train_drop = shuffle(X_train_drop, y_train_drop, random_state=RANDOM_SEED)
+X_train_no_stalk, y_train_no_stalk = shuffle(X_train_no_stalk, y_train_no_stalk, random_state=RANDOM_SEED)
+
+X_train_pc, y_train_pc = shuffle(X_train_pc, y_train_pc, random_state=RANDOM_SEED)
+X_train_pc_drop, y_train_pc_drop = shuffle(X_train_pc_drop, y_train_pc_drop, random_state=RANDOM_SEED)
+
+
+
+#%%
+
 print("Full dataset cv:")
 gs_full = param_tune_grid_cv(clf_lr, LOGISTIC_REGRESSION_PARAMS, X_train, y_train, kf)
 print("\nDataset projected on first 9 pc cv:")
 gs_pc = param_tune_grid_cv(clf_lr, LOGISTIC_REGRESSION_PARAMS, X_train_pc, y_train_pc, kf)
 print("\nFull dataset with dropped values took:")
 gs_drop = param_tune_grid_cv(clf_lr, LOGISTIC_REGRESSION_PARAMS, X_train_drop, y_train_drop, kf)
-gss = [gs_full, gs_pc, gs_drop]
+print("\nProjected dataset with dropped values took:")
+gs_pc_drop = param_tune_grid_cv(clf_lr, LOGISTIC_REGRESSION_PARAMS, X_train_pc_drop, y_train_pc_drop, kf)
+print("\nFull dataset without stalk-root column:")
+gs_no_stalk = param_tune_grid_cv(clf_lr, LOGISTIC_REGRESSION_PARAMS, X_train_no_stalk, y_train_no_stalk, kf)
 
-test_results = score(gss, [(X_test, y_test), (X_test_pc, y_test_pc), (X_test_drop, y_test_drop)])
+gss = [gs_full, gs_pc, gs_drop, gs_pc_drop, gs_no_stalk]
 
-#%%
-'''
-print("Full dataset cv:")
-gs_full_balanced = param_tune_grid_cv(clf_lr_balanced, LOGISTIC_REGRESSION_PARAMS, X_train, y_train, kf)
-print("\nDataset projected on first 9 pc cv:")
-gs_pc_balanced = param_tune_grid_cv(clf_lr_balanced, LOGISTIC_REGRESSION_PARAMS, X_train_pc, y_train_pc, kf)
-print("\nFull dataset with dropped values took:")
-gs_drop_balanced = param_tune_grid_cv(clf_lr_balanced, LOGISTIC_REGRESSION_PARAMS, X_train_drop, y_train_drop, kf)
-gss_balanced = [gs_full_balanced, gs_pc_balanced, gs_drop_balanced]
+test_results = score(gss, [(X_test, y_test), 
+                           (X_test_pc, y_test_pc), 
+                           (X_test_drop, y_test_drop), 
+                           (X_test_pc_drop, y_test_pc_drop),
+                           (X_test_no_stalk, y_test_no_stalk)])
 
-test_results_balanced = score(gss_balanced, [(X_test, y_test), (X_test_pc, y_test_pc), (X_test_drop, y_test_drop)])
-'''
 #%% 
 X_train.shape
 
 #%% [markdown]
 # This is the score of the different classification on the test set:
 #%%
-dataset_strings = ["full dataset", "dataset with first 9 principal components", "dataset with dropped missing values"]
-method_strings = ["without any balancing"]
+dataset_strings = ["full dataset", 
+                   "dataset with first 9 principal components", 
+                   "dataset with dropped missing values",
+                   "dataset with dropped missing value reduced with first 9 principal components",
+                   "dataset with stalk-root field dropped"]
+method_strings = ["without any method"]
 
 t = PrettyTable()
 t.field_names = ["Score", "Dataset", "Type"]
@@ -1354,11 +1470,18 @@ result_row = sorted(result_row, key=lambda kv: kv[0], reverse=True)
 for k in result_row:
     t.add_row(k)
 
-t.title = "F1 score  dataset and method"
 print(t)
 
 #%% [markdown]
-# So the dataset we will use for all the classification methods will be the one with missing values removed.
+# We can notice that the classfication score achieved with the dataset in which the missing values were
+# removed is the best one. Probably beacuse, with the full dataset, the classifier learnt some 
+# not existent correlations between the missing value encoded and the other features. 
+# Moreover, being the dataset easy to classify overall, reducing the amount of samples does not
+# cause issues on the training of our model.
+# 
+# In any case, looking at the performances, there is a big difference between the full dataset
+# and the one containing only principal components; due to this, in the next steps we are going to
+# use the reduced dataset, beacuse we can achieve an high score saving a lot of time.
 
 #%%
 print_gridcv_scores(gs_drop)
