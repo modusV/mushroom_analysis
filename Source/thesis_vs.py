@@ -133,6 +133,7 @@ from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
+from sklearn.neighbors import KNeighborsClassifier
 
 import plotly
 import plotly.plotly as py
@@ -173,7 +174,7 @@ def watcher(func):
     return wrapper
 
 #%% 
-
+'''
 # Define classes 
 
 class Dataset:
@@ -183,11 +184,12 @@ class Dataset:
         self.seed = seed
         self.name = name
         
-    def set_name(name):
+    def set_name(self, name):
         self.name = name
     
-    def get_name(name):
-        return self.name
+    @property
+    def name(self):
+        return self.__name
 
     def import_data(path):
         self.dataset = pd.read_csv(path)
@@ -208,7 +210,7 @@ class Classifier:
         self.seed = seed
         self.name = name
 
-
+'''
 #%% [markdown]
 ## Dataset load and overall view
 # Let's start importing the data:
@@ -1343,7 +1345,7 @@ t = PrettyTable()
 t.field_names = ["Score", "Dataset", "Type"]
 
 result_row = []
-for ms, results in zip(method_strings, [test_results, test_results_balanced]):
+for ms, results in zip(method_strings, [test_results]):
     for ds, res in zip(dataset_strings, results):
         result_row.append(["%.3f" % res, ds, ms])
         
