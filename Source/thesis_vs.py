@@ -125,7 +125,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from sklearn.preprocessing import LabelEncoder, StandardScaler, OneHotEncoder
-from sklearn.model_selection import train_test_split, KFold, StratifiedKFold, GridSearchCV, learning_curve
+from sklearn.model_selection import train_test_split, KFold, StratifiedKFold, GridSearchCV, learning_curve, cross_val_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss, confusion_matrix, roc_curve, auc, roc_auc_score, accuracy_score, f1_score, precision_score, recall_score
 from sklearn.ensemble import RandomForestClassifier
@@ -1537,6 +1537,21 @@ plot_learning_curve(gs_drop.best_estimator_, "Learning Curve of Logistic Regress
 
 #%% [markdown]
 # ### Support vector machine
+# A Support Vector Machine (SVM) is a discriminative classifier formally defined by a 
+# separating hyperplane. In other words, given labeled training data (supervised learning), 
+# the algorithm outputs an optimal hyperplane which categorizes new examples. In two dimentional space 
+# this hyperplane is a line dividing a plane in two parts where in each class lay in either side.
+# 
+# We perform the grid search over:
+# - `linear`. This is the simplest SVM, finds the hyperplane which separates in the best way our samples.
+#   - `C`. The C parameter tells the SVM optimization how much you want to avoid misclassifying 
+#           each training example. For large values of C, the optimization will choose a smaller-margin 
+#           hyperplane if that hyperplane does a better job of getting all the training points 
+#           classified correctly.
+# - `rbf`. This parameter indicates that we are using a radial basis function kernel to perform the 
+#           scalar product. 
+#   - `gamma` parameter defines how far the influence of a single training example reaches, 
+#       with low values meaning ‘far’ and high values meaning ‘close’.
 
 #%%
 clf_svm = SVC(probability=True, random_state=RANDOM_SEED)
@@ -1549,10 +1564,28 @@ plot_learning_curve(gs_pc_svm.best_estimator_, "Learning curve of SVM",
                     np.concatenate((y_train_pc, y_test_pc)),
                     cv=5)
 
+#%% [markdown]
+# The achieved score is really high. Let's see the confusion matrix:
+
 #%%
 print_confusion_matrix(gs_pc_svm, X_test_pc, y_test_pc)
 #%% [markdown]
-# We can notice that most of the times, the only mistakes are poisonous mushrooms classified as edible. These mistakes weight must be much higher with respect to an edible mushroom classified as poisonous, because there is not any danger in that case.
+# We can notice that most of the times, the only mistakes are poisonous mushrooms classified as edible. 
+# These mistakes weight must be much higher with respect to an edible mushroom classified as 
+# poisonous, because there is not any danger in that case.
+
+
+#%% [markdown]
+
+# ### Naive Bayes Classifier
+# The naive bayes classifier is based on the bayes theorem which states that:
+# $$
+# P(y|X) = \frac{P(X|y)P(y)}{P(X)}
+# $$
+# Using Bayes theorem, we can find the probability of A happening, 
+# given that B has occurred. Here, B is the evidence and A is the hypothesis. The assumption made 
+# here is that the predictors/features are independent. That is presence of one particular 
+# feature does not affect the other. Hence it is called naive.
 
 #%%
 clf_nb = GaussianNB()
@@ -1567,6 +1600,16 @@ plot_learning_curve(clf_nb, "Learning curve of GaussianNB",
                     np.concatenate((y_train, y_test), axis=0), 
                     cv=5)
 
+#%% [markdown]
+# ### Random Forest Classifier
+# It is a tree-based method, derived from bagging decision trees, to which
+# it is added another small trick which decorrelates the trees, in order to 
+# reduce further the variance. 
+# As in bagging, we build a number of decision trees on bootstrapped training 
+# samples. But when building these decision trees, each time a split in a tree 
+# is considered, a random selection of m predictors is chosen as split 
+# candidates from the full set of p predictors. The split is allowed to use only 
+# one of those m predictors, which typically are $m \approx \sqrt{p}$
 #%%
 
 clf_pc_rf = RandomForestClassifier(random_state=RANDOM_SEED)
@@ -1582,6 +1625,10 @@ plot_learning_curve(gs_pc_rf.best_estimator_, "Learning curve of Random Forest C
                     np.concatenate((y_train_pc, y_test_pc)), 
                     cv=5)
 
+#%% [markdown]
+# The training time is pretty high, but the accuracy as well. Now let's look 
+# deeper into the features of the random forest classifier; let's see which of them weights more
+# on the classification.
 #%%
 feature_importance = np.array(  sorted(zip(X_train_pc.columns, 
                                 gs_pc_rf.best_estimator_.named_steps['clf'].feature_importances_),
@@ -1601,6 +1648,30 @@ gss = [gs_full, gs_pc, gs_drop]
 
 test_results = score(gss, [(X_test, y_test), (X_test_pc, y_test_pc), (X_test_drop, y_test_drop)])
 '''
+
+#%% [markdown]
+# ### K-Nearest Neighbors Classifier
+# k-NN is a type of instance-based learning, or lazy learning, where the function 
+# is only approximated locally and all computation is deferred until classification. 
+# The k-NN algorithm is among the simplest of all machine learning algorithms.
+# 
+# The training phase of the algorithm consists only of storing the feature vectors 
+# and class labels of the training samples. In the classification phase, k is a user-defined constant, 
+# and an unlabeled vector (a query or test point) is classified by assigning the label which 
+# is most frequent among the k training samples nearest to that query point.
+# 
+# The parameters for cross validation are:
+# - `n_neighbors`. Number of closes samples to analyze
+# - `weights`. Indicates the weight function to use in prediction.
+#   - `uniform`. All points in the neighborhood are weighted equally
+#   - `distance`. Weight points by the inverse of their distance. 
+#                In this case, closer neighbors of a query point will have a greater 
+#                influence than neighbors which are further away.
+# - `p`. Power parameter for the Minkowski metric (generalization of Euclidean distance)
+#   - p=1 uses `l1`
+#   - p=2 uses `l2`
+#   - p>2 minkowski_distance (l_p) is used.
+
 #%%
 
 clf_knn = KNeighborsClassifier()
@@ -1624,8 +1695,28 @@ plot_learning_curve(gs_knn.best_estimator_, "Learning curve of Random Forest Cla
 
 
 #%% [markdown]
-# The K-NN classification with the whole dataset gives the same result but it takes more than 7 times more time
+# The accuracy achieved is really high.
+# The K-NN classification with the whole dataset gives the same result but it takes more than 
+# 7 times more time
 
+#%% [markdown]
+# ### ROC curve
+# At this point we need to evaluate the performances of the different classifiers and
+# compare them. 
+# We are going to plot the ROC curve and the Area Under Curve for all our models.
+# classifiers. 
+# The ROC curve is plotted with TPR against the FPR where TPR is on y-axis and FPR is on the x-axis.
+# Specifically, these parameters are:
+# - $$ 
+#   TRP/Recall/Sensitivity = \frac{TP}{TP+FN}
+#   $$
+# - $$
+#   FPR = \frac{FP}{TN+FP}
+#   $$
+#
+# An excellent model has AUC near to the 1 which means it has good measure of 
+# separability. A poor model has AUC near to the 0 which means it has worst measure 
+# of separability.
 #%%
 
 def plot_roc_curve(classifiers, legend, title, X_test, y_test):
@@ -1705,47 +1796,44 @@ print_performances(classifiers, classifier_names, auc_scores, X_test_pc, y_test_
 
 #%% [markdown]
 
-# To have a little bit more fun we will try one more thing. Due to the fact that some charateristics of mushrooms are subjective, like odor for example, and some others need more advanced analysis, like spore print, we will try to use our best-performing classification algorithm on a reduced version of the dataset, keeping only the features understendable by every person without the need of any specific equipment of knowledge.
+# To have a little bit more fun we will try one more thing.
+# If we are in a wood, how can we survive without the help of an SVM? 
+# Let's find out what are the peculiar traits of a poisonous mushroom 
+#
+# Firstly, we create a KNN classifier and we see which are scores
 
 #%%
-pre_data.columns
 
+n_features = pre_ohc_data.shape[1]
+clf = KNeighborsClassifier()
+feature_score = []
+t = PrettyTable()
+t.field_names = ["Feature", "Score"]
 
-#%%
-data_vis = pre_data.drop(['odor', 'spore-print-color'], axis=1)
-data_vis = data_vis[data_vis['stalk-root'] != le_mapping['stalk-root']['?']]
+for i in range(n_features):
+    X_feature= np.reshape(pre_ohc_data.iloc[:,i:i+1],-1,1) # One column at a time
+    scores = cross_val_score(clf, X_feature, y_data)
+    feature_score.append(scores.mean())
+    t.add_row([pre_ohc_data.columns[i], "{0:0.4f}".format(scores.mean())])
 
-data_vis.shape
-
-X_data_vis, y_data_vis = dataframe_to_array(data_vis)
-X_data_vis = scale_data(X_data_vis)
-
-pca = PCA(random_state=RANDOM_SEED)
-proj_data = pca.fit_transform(X_data_vis)
-tot_var = np.sum(pca.explained_variance_)
-ex_var = [(i / tot_var) * 100 for i in sorted(pca.explained_variance_, reverse=True)]
-cum_ex_var = np.cumsum(ex_var)
-n_comp = 9
-pca.components_ = pca.components_[:n_comp]
-reduced_data = np.dot(proj_data, pca.components_.T)
-# pca.inverse_transform(projected_data)
-X_vis_reduced = pd.DataFrame(reduced_data, columns=["PC#%d" % (x + 1) for x in range(n_comp)])
+print(t)
 
 #%%
-X_train_vis, X_test_vis, y_train_vis, y_test_vis = train_test_split(X_vis_reduced, y_data_vis, test_size=0.2, random_state=RANDOM_SEED)
 
-clf_svm = SVC(probability=True, random_state=RANDOM_SEED)
-gs_pc_svm = param_tune_grid_cv(clf_svm, SVM_PARAMS, X_train_vis, y_train_vis, kf)
-print_gridcv_scores(gs_pc_svm, n=5)
-
-#%%
-plot_learning_curve(gs_pc_svm.best_estimator_, "Learning curve of SVM", 
-                    np.concatenate((X_train_vis, X_test_vis)),
-                    np.concatenate((y_train_vis, y_test_vis)),
-                    cv=5)
+f_importance = pd.Series(data = feature_score, index = pre_ohc_data.columns)
+f_importance.sort_values(ascending=False, inplace=True)
+f_importance[f_importance > 0.7]
 
 #%%
-print_confusion_matrix(gs_pc_svm, X_test_vis, y_test_vis)
 
-#%% [markdown]
-# SVM performs really well also in this case. Those mushrooms are easily classified by our model.
+col_importance = f_importance[f_importance>0.7].index.values
+pre_ohc_Xy = pd.concat([pre_ohc_data, pd.DataFrame(y_data, columns=['class'])], axis=1)
+grouped = pre_ohc_Xy.groupby('class')
+
+#%%
+grouped.get_group(0)[col_importance].sum()
+
+#%%
+grouped.get_group(1)[col_importance].sum()
+
+#%%
