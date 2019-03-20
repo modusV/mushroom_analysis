@@ -376,7 +376,6 @@ def encode_values(dataset):
 
 def print_encoding(mapping):
     t = PrettyTable()
-    field_names = []
     rows = []
     for key, value in mapping.items():
         r = []
@@ -456,7 +455,7 @@ pre_ohc_data = one_hot_encode(dataset.iloc[:,1:])
 pre_ohc_data.drop(['stalk-root-m'], axis=1, inplace=True)
 pre_ohc_data.head(5)
 
-TODO: PCA THE SHIT OUT OF THIS AND TRY THE TWO CLASSIFICATIONS
+
 #%% [markdown]
 # As we can see, we obtained a huge dataset, where all the fields are binary.
 
@@ -896,6 +895,7 @@ def plot_cumulative_variance(pca):
         xaxis=dict(
             title="Principal components",
             dtick=1,
+            rangemode='nonnegative'
         ),
         legend=dict(
             x=0,
@@ -903,7 +903,7 @@ def plot_cumulative_variance(pca):
         ),
     )
     fig = go.Figure(data=data, layout=layout)
-    iplot(fig, filename='basic-bar')
+    return iplot(fig, filename='basic-bar')
 
 def compress_data(X_dataset, n_components, plot_comp=False):
     
@@ -915,37 +915,56 @@ def compress_data(X_dataset, n_components, plot_comp=False):
     :param (bool) plot_comp: Plot explained variance
 
     :returns (pandas dataframe) X_df_reduced: pandas dataframe with reduced dataset
+    :return (iplot) p: Plot, only if plot_com equals True. To plot the graph,
+                       simply call the return value.
     """   
 
     pca = PCA(random_state=RANDOM_SEED)
     projected_data = pca.fit_transform(X_dataset)
 
     if plot_comp:
-        plot_cumulative_variance(pca)
+        p = plot_cumulative_variance(pca)
 
-    n_comp = n_components
-    pca.components_ = pca.components_[:n_comp]
+    pca.components_ = pca.components_[:n_components]
     reduced_data = np.dot(projected_data, pca.components_.T)
-    X_df_reduced = pd.DataFrame(reduced_data, columns=["PC#%d" % (x + 1) for x in range(n_comp)])
-    return X_df_reduced
+    X_df_reduced = pd.DataFrame(reduced_data, columns=["PC#%d" % (x + 1) for x in range(n_components)])
+    if plot_comp:
+        return p, X_df_reduced
+    else:
+        return X_df_reduced
     
 #%%
 
-X_df_reduced = compress_data(X_dataset=X_scaled_data,
+plot, X_df_reduced = compress_data(X_dataset=X_scaled_data,
                              n_components=9,
                              plot_comp=True)
+plot                       
+
+#%% [markdown]
+# From the graph we can see that the first 9 components retain almost 80% of total variance, 
+# while last 5 not even 2%. We then choose to select first nine of them. 
+# 
+# This allows us to work on a smaller dataset achieving similar results, 
+# because most of the information is maintained.
+# 
+# In the function `compre_data`, the dataset is also projected on these vectors,
+# in such a way to obtain data reduction. This is a simple scalar product
+#%%
 
 X_df_drop_reduced = compress_data(X_dataset=X_scaled_drop_data,
                                   n_components=9,
                                   plot_comp=False)
 
-X_df_reduced.head(4)
+plot, X_df_ohc_reduced = compress_data(X_dataset=pre_ohc_data,
+              n_components=20,
+              plot_comp=True)
+plot
 #%% [markdown]
-# From the graph we can see that the first 9 components retain almost 80% of total variance, while last 5 not even 2%. We then choose to select first nine of them. 
-# 
-# This allows us to work on a smaller dataset achieving similar results, because most of the informaion is maintained.
-# 
-# Let's now project our samples on the found components.
+# We can see that on those many components, some of them can be excluded. On this dataset we will keep
+# the 80% variance rule, so I decided to project data on the first 20 components.
+#%%
+X_df_reduced.head(4)
+
 #%% 
 '''
 N=pre_data.values
@@ -1023,13 +1042,34 @@ iplot(fig, filename='clusters-scatter')
 # Our dataset is pretty balanced, so we do not need any over or under-sampling technique. If we will perform poorly in classification, we could try to use some ensemble learning methods, but they should not be necessary.
 # Let's start with splitting the datasets in train and test.
 
+
+#%%
+'''
+X_scaled_data, y_data = shuffle(X_scaled_data, y_data, random_state=RANDOM_SEED)
+X_df_reduced, y_data_reduced = shuffle(X_df_reduced, y_data, random_state=RANDOM_SEED)
+X_scaled_drop_data, y_drop_data = shuffle(X_scaled_drop_data, y_drop_data, random_state=RANDOM_SEED)
+X_df_drop_reduced, y_drop_reduced = shuffle(X_df_drop_reduced, y_drop_data, random_state=RANDOM_SEED)
+X_scaled_no_stalk, y_no_stalk = shuffle(X_scaled_no_stalk, y_no_stalk, random_state=RANDOM_SEED)
+X_df_ohc_reduced, y_ohc_reduced = shuffle(X_df_ohc_reduced, y_data, random_state=RANDOM_SEED)
+
+X_train_drop, y_train_drop = shuffle(X_train_drop, y_train_drop, random_state=RANDOM_SEED)
+X_train_no_stalk, y_train_no_stalk = shuffle(X_train_no_stalk, y_train_no_stalk, random_state=RANDOM_SEED)
+X_train_pc, y_train_pc = shuffle(X_train_pc, y_train_pc, random_state=RANDOM_SEED)
+X_train_pc_drop, y_train_pc_drop = shuffle(X_train_pc_drop, y_train_pc_drop, random_state=RANDOM_SEED)
+X_train_ohc_pc, y_train_ohc_pc = shuffle(X_train_ohc_pc, y_train_ohc_pc, random_state=RANDOM_SEED)
+'''
+
 #%%
 
 X_train, X_test, y_train, y_test = train_test_split(X_scaled_data, y_data, test_size=0.2, random_state=RANDOM_SEED)
 X_train_pc, X_test_pc, y_train_pc, y_test_pc = train_test_split(X_df_reduced, y_data, test_size=0.2, random_state=RANDOM_SEED)
+
 X_train_drop, X_test_drop, y_train_drop, y_test_drop = train_test_split(X_scaled_drop_data, y_drop_data, test_size=0.2, random_state=RANDOM_SEED)
 X_train_pc_drop, X_test_pc_drop, y_train_pc_drop, y_test_pc_drop = train_test_split(X_df_drop_reduced, y_drop_data, test_size=0.2, random_state=RANDOM_SEED)
 X_train_no_stalk, X_test_no_stalk, y_train_no_stalk, y_test_no_stalk = train_test_split(X_scaled_no_stalk, y_no_stalk, test_size=0.2, random_state=RANDOM_SEED)
+
+X_train_ohc_pc, X_test_ohc_pc, y_train_ohc_pc, y_test_ohc_pc = train_test_split(X_df_ohc_reduced, y_data, test_size=0.2, random_state=RANDOM_SEED)
+X_train_ohc, X_test_ohc, y_train_ohc, y_test_ohc = train_test_split(pre_ohc_data, y_data, test_size=0.2, random_state=RANDOM_SEED)
 
 #%% [markdown]
 # The method used to pick the "best" dataset will be Logistic Regression, and we will tune its parameters using a grid search cross validation. 
@@ -1393,6 +1433,7 @@ def print_performances(classifiers, classifier_names, auc_scores, X_test, y_test
 #%% 
 kf = StratifiedKFold(n_splits=5, random_state=RANDOM_SEED)
 clf_lr = LogisticRegression(random_state=RANDOM_SEED)
+TEST_PARAMS = LOGISTIC_REGRESSION_PARAMS
 
 #%% [markdown]
 # Then we perform a grid search over all the parameters of the LogisticRegressor model.
@@ -1412,37 +1453,34 @@ clf_lr = LogisticRegression(random_state=RANDOM_SEED)
 #     - Where $y_i$ is the true label and $f(x_i)$ is the assigned label
 
 
-#%%
-
-X_train, y_train = shuffle(X_train, y_train, random_state=RANDOM_SEED)
-X_train_drop, y_train_drop = shuffle(X_train_drop, y_train_drop, random_state=RANDOM_SEED)
-X_train_no_stalk, y_train_no_stalk = shuffle(X_train_no_stalk, y_train_no_stalk, random_state=RANDOM_SEED)
-
-X_train_pc, y_train_pc = shuffle(X_train_pc, y_train_pc, random_state=RANDOM_SEED)
-X_train_pc_drop, y_train_pc_drop = shuffle(X_train_pc_drop, y_train_pc_drop, random_state=RANDOM_SEED)
-
 
 
 #%%
 
 print("Full dataset cv:")
-gs_full = param_tune_grid_cv(clf_lr, LOGISTIC_REGRESSION_PARAMS, X_train, y_train, kf)
+gs_full = param_tune_grid_cv(clf_lr, TEST_PARAMS, X_train, y_train, kf)
 print("\nDataset projected on first 9 pc cv:")
-gs_pc = param_tune_grid_cv(clf_lr, LOGISTIC_REGRESSION_PARAMS, X_train_pc, y_train_pc, kf)
+gs_pc = param_tune_grid_cv(clf_lr, TEST_PARAMS, X_train_pc, y_train_pc, kf)
 print("\nFull dataset with dropped values took:")
-gs_drop = param_tune_grid_cv(clf_lr, LOGISTIC_REGRESSION_PARAMS, X_train_drop, y_train_drop, kf)
+gs_drop = param_tune_grid_cv(clf_lr, TEST_PARAMS, X_train_drop, y_train_drop, kf)
 print("\nProjected dataset with dropped values took:")
-gs_pc_drop = param_tune_grid_cv(clf_lr, LOGISTIC_REGRESSION_PARAMS, X_train_pc_drop, y_train_pc_drop, kf)
+gs_pc_drop = param_tune_grid_cv(clf_lr, TEST_PARAMS, X_train_pc_drop, y_train_pc_drop, kf)
 print("\nFull dataset without stalk-root column:")
-gs_no_stalk = param_tune_grid_cv(clf_lr, LOGISTIC_REGRESSION_PARAMS, X_train_no_stalk, y_train_no_stalk, kf)
+gs_no_stalk = param_tune_grid_cv(clf_lr, TEST_PARAMS, X_train_no_stalk, y_train_no_stalk, kf)
+print("\nDataset one hot encoded on first 20 components:")
+gs_ohc_pc = param_tune_grid_cv(clf_lr, TEST_PARAMS, X_train_ohc_pc, y_train_ohc_pc, kf)
+print("\nDataset one hot encoded")
+gs_ohc = param_tune_grid_cv(clf_lr, TEST_PARAMS, X_train_ohc, y_train_ohc, kf)
 
-gss = [gs_full, gs_pc, gs_drop, gs_pc_drop, gs_no_stalk]
+gss = [gs_full, gs_pc, gs_drop, gs_pc_drop, gs_no_stalk, gs_ohc_pc, gs_ohc]
 
 test_results = score(gss, [(X_test, y_test), 
                            (X_test_pc, y_test_pc), 
                            (X_test_drop, y_test_drop), 
                            (X_test_pc_drop, y_test_pc_drop),
-                           (X_test_no_stalk, y_test_no_stalk)])
+                           (X_test_no_stalk, y_test_no_stalk),
+                           (X_test_ohc_pc, y_test_ohc_pc),
+                           (X_test_ohc, y_test_ohc)])
 
 #%% 
 X_train.shape
@@ -1451,10 +1489,12 @@ X_train.shape
 # This is the score of the different classification on the test set:
 #%%
 dataset_strings = ["full dataset", 
-                   "dataset with first 9 principal components", 
+                   "dataset reduced on first 9 PC", 
                    "dataset with dropped missing values",
-                   "dataset with dropped missing value reduced with first 9 principal components",
-                   "dataset with stalk-root field dropped"]
+                   "dataset with dropped missing value reduced with first 9 PC",
+                   "dataset with stalk-root field dropped",
+                   "dataset ohc reduced on first 20 PC",
+                   "dataset ohc"]
 method_strings = ["without any method"]
 
 t = PrettyTable()
