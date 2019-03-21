@@ -1671,11 +1671,12 @@ plot_learning_curve(clf_nb, "Learning curve of GaussianNB",
 # It is a tree-based method, derived from bagging decision trees, to which
 # it is added another small trick which decorrelates the trees, in order to 
 # reduce further the variance. 
+#
 # As in bagging, we build a number of decision trees on bootstrapped training 
 # samples. But when building these decision trees, each time a split in a tree 
 # is considered, a random selection of m predictors is chosen as split 
 # candidates from the full set of p predictors. The split is allowed to use only 
-# one of those m predictors, which typically are $m \approx \sqrt{p}$
+# one of those m predictors, which typically are $m \approx \sqrt{p}$.
 #%%
 
 clf_pc_rf = RandomForestClassifier(random_state=RANDOM_SEED)
@@ -1717,19 +1718,19 @@ test_results = score(gss, [(X_test, y_test), (X_test_pc, y_test_pc), (X_test_dro
 
 #%% [markdown]
 # ### K-Nearest Neighbors Classifier
-# k-NN is a type of instance-based learning, or lazy learning, where the function 
+# K-NN is a type of instance-based learning, or lazy learning, where the function 
 # is only approximated locally and all computation is deferred until classification. 
-# The k-NN algorithm is among the simplest of all machine learning algorithms.
+# The K-NN algorithm is among the simplest of all machine learning algorithms.
 # 
 # The training phase of the algorithm consists only of storing the feature vectors 
-# and class labels of the training samples. In the classification phase, k is a user-defined constant, 
+# and class labels of the training samples. In the classification phase, K is a user-defined constant, 
 # and an unlabeled vector (a query or test point) is classified by assigning the label which 
 # is most frequent among the k training samples nearest to that query point.
 # 
 # The parameters for cross validation are:
 # - `n_neighbors`. Number of closes samples to analyze
 # - `weights`. Indicates the weight function to use in prediction.
-#   - `uniform`. All points in the neighborhood are weighted equally
+#   - `uniform`. All points in the neighborhood are weighted equally.
 #   - `distance`. Weight points by the inverse of their distance. 
 #                In this case, closer neighbors of a query point will have a greater 
 #                influence than neighbors which are further away.
@@ -1921,10 +1922,22 @@ for n_ed, n_pos in zip(feat_edible, feat_poisonous):
     total = total + cum - total * cum
 
 print(total)
-#%%
-print(feat_edible[0]
 
 #%% [markdown]
-# These above are the mushrooms having those features, respectively in the 
-# two classes; It is clear that those features.
+# ## Conclusions
+# Our goal was to predict if a mushroom was poisonous or edible from its features.
+#  
+# We understood that they are well separated and our classifiers can anchieve optimal performances. 
+# 
+# ![](https://infovisual.info/storage/app/media/01/img_en/024%20Mushroom.jpg)
+#
+# Looking at the KNN score using the different values for features, we understood that you should 
+# not eat a mushroom if it has:
+#
+# 1. fishy odor
+# 2. stalk surface above ring silky
+# 3. stalk surface below ring silky
+# 4. gill size narrow
+# 5. spore print color chocolatey
 
+#%%
