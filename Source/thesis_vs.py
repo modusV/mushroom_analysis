@@ -162,10 +162,8 @@ warnings.filterwarnings("ignore")
 
 def watcher(func):
     """
-    Decorator for dumpers.
     Shows how much time it
-    takes to create/retrieve
-    the blob.
+    takes to execute function
     """
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -1103,8 +1101,8 @@ def print_gridcv_scores(grid_search, n=5):
         t.add_row(row)
     print(t)
                
-@watcher
-def param_tune_grid_cv(clf, params, X_train, y_train, cv):
+
+def param_tune_grid_cv(clf, params, X_train, y_train, cv, execution_time=False):
     """
     Function that performs a grid search over some parameters
 
@@ -1113,7 +1111,9 @@ def param_tune_grid_cv(clf, params, X_train, y_train, cv):
     :param (array-like) X_train: List of data to be trained with
     :param (array-like) y_train: Target relative to X for classification or regression
     :param (cross-validation generator) cv: Determines the cross-validation splitting strategy
-    """   
+    """ 
+    if execution_time:
+      start = time.perf_counter()
     pipeline = Pipeline([('clf', clf)])
     grid_search = GridSearchCV(estimator=pipeline, 
                                param_grid=params, 
@@ -1122,6 +1122,9 @@ def param_tune_grid_cv(clf, params, X_train, y_train, cv):
                                scoring='f1',    # Use f1 metric for evaluation
                                return_train_score=True)
     grid_search.fit(X_train, y_train)
+    if execution_time:
+      end = time.perf_counter()
+      return grid_search, "%.4f" % (end-start)
     return grid_search
    
 
@@ -1431,9 +1434,19 @@ def print_performances(classifiers, classifier_names, auc_scores, X_test, y_test
 #
 # Then we define our LogisticRegression classifier, setting the `random_state` parameter to our usual seed value, in such a way that we can classify each time in the same way.
 #%% 
+'''
 kf = StratifiedKFold(n_splits=5, random_state=RANDOM_SEED)
 clf_lr = LogisticRegression(random_state=RANDOM_SEED)
 TEST_PARAMS = LOGISTIC_REGRESSION_PARAMS
+'''
+kf = StratifiedKFold(n_splits=5, random_state=RANDOM_SEED)
+clf_nb = GaussianNB()
+clf_knn = KNeighborsClassifier()
+clf_rf = RandomForestClassifier(random_state=RANDOM_SEED)
+clf_lr = LogisticRegression(random_state=RANDOM_SEED)
+clf_svm = SVC(random_state=RANDOM_SEED)
+clfs = [clf_nb, clf_knn, clf_rf, clf_lr, clf_svm]
+TEST_PARAMS = {}
 
 #%% [markdown]
 # Then we perform a grid search over all the parameters of the LogisticRegressor model.
@@ -1456,7 +1469,7 @@ TEST_PARAMS = LOGISTIC_REGRESSION_PARAMS
 
 
 #%%
-
+'''
 print("Full dataset cv:")
 gs_full = param_tune_grid_cv(clf_lr, TEST_PARAMS, X_train, y_train, kf)
 print("\nDataset projected on first 9 pc cv:")
@@ -1481,36 +1494,97 @@ test_results = score(gss, [(X_test, y_test),
                            (X_test_no_stalk, y_test_no_stalk),
                            (X_test_ohc_pc, y_test_ohc_pc),
                            (X_test_ohc, y_test_ohc)])
+'''
+all_test_results = []
+all_gss = []
+times = np.zeros(7)
+t = 0
+      
+for clf in clfs:
 
-#%% 
-X_train.shape
+  gs_full, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train, y_train, kf, execution_time=True)
+  times[0] = times[0] + float(t)
+  
+  gs_pc, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_pc, y_train_pc, kf, execution_time=True)
+  times[1] = times[1] + float(t)
+  
+  gs_drop, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_drop, y_train_drop, kf, execution_time=True)
+  times[2] = times[2] + float(t)
+  
+  gs_pc_drop, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_pc_drop, y_train_pc_drop, kf, execution_time=True)
+  times[3] = times[3] + float(t)
+  
+  gs_no_stalk, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_no_stalk, y_train_no_stalk, kf, execution_time=True)
+  times[4] = times[4] + float(t)
+  
+  gs_ohc_pc, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_ohc_pc, y_train_ohc_pc, kf, execution_time=True)
+  times[5] = times[5] + float(t)
+  
+  gs_ohc, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_ohc, y_train_ohc, kf, execution_time=True)
+  times[6] = times[6] + float(t)
+  
+  
+  gss = [gs_full, gs_pc, gs_drop, gs_pc_drop, gs_no_stalk, gs_ohc_pc, gs_ohc]
+  all_gss.append(gss)
+  test_results = score(gss, [(X_test, y_test), 
+                             (X_test_pc, y_test_pc), 
+                             (X_test_drop, y_test_drop), 
+                             (X_test_pc_drop, y_test_pc_drop),
+                             (X_test_no_stalk, y_test_no_stalk),
+                             (X_test_ohc_pc, y_test_ohc_pc),
+                             (X_test_ohc, y_test_ohc)])
+  all_test_results.append(test_results)
 
 #%% [markdown]
 # This is the score of the different classification on the test set:
+
 #%%
-dataset_strings = ["full dataset", 
+dataset_strings = [" ", "full dataset", 
                    "dataset reduced on first 9 PC", 
                    "dataset with dropped missing values",
                    "dataset with dropped missing value reduced with first 9 PC",
                    "dataset with stalk-root field dropped",
                    "dataset ohc reduced on first 20 PC",
                    "dataset ohc"]
-method_strings = ["without any method"]
+
+row_names = ["Naive Bayes", "KNN", "Random Forest", "Linear Regression", "SVM"]
 
 t = PrettyTable()
-t.field_names = ["Score", "Dataset", "Type"]
+t.field_names = dataset_strings
 
+all_rows = []
 result_row = []
-for ms, results in zip(method_strings, [test_results]):
-    for ds, res in zip(dataset_strings, results):
-        result_row.append(["%.3f" % res, ds, ms])
-        
-result_row = sorted(result_row, key=lambda kv: kv[0], reverse=True)
 
-for k in result_row:
+for name, results in zip(row_names, all_test_results):
+  result_row.append(name)
+  for r in results:
+    result_row.append("%.3f" % r)
+  all_rows.append(result_row)
+  result_row = []
+ 
+all_rows = sorted(all_rows, key=lambda kv: kv[1], reverse=True)
+
+for k in all_rows:
     t.add_row(k)
-
+    
 print(t)
+#%% [markdown]
+# After have evaluated all these results, we are going to select the one that 
+# have the best tradeoff between time and score
+#%%
+
+means = np.mean(all_test_results, axis=0)
+  
+time_table = PrettyTable()
+time_row = ["Total train time (s)"] + np.ndarray.tolist(times)
+mean_row = ["Mean score for dataset"] + np.ndarray.tolist(means)
+time_table.field_names = dataset_strings
+time_table.add_row(time_row)
+time_table.add_row(mean_row)
+print(time_table)
+  
+print("The dataset that gives the best overall performances is:")
+print("\t- " + dataset_strings[means.argmax()] + " with a score of " + str("%.3f" % means.max()))
 
 #%% [markdown]
 # We can notice that the classfication score achieved with the dataset in which the missing values were
@@ -1531,8 +1605,8 @@ print_confusion_matrix(gs_drop, X_test_drop, y_test_drop)
 
 #%% 
 plot_learning_curve(gs_drop.best_estimator_, "Learning Curve of Logistic Regression", 
-                    np.concatenate((X_train_drop, X_test_drop)),
-                    np.concatenate((y_train_drop, y_test_drop)), 
+                    X_train_drop,
+                    y_train_drop, 
                     cv=5)
 
 #%% [markdown]
@@ -1560,8 +1634,8 @@ print_gridcv_scores(gs_pc_svm, n=5)
 
 #%%
 plot_learning_curve(gs_pc_svm.best_estimator_, "Learning curve of SVM", 
-                    np.concatenate((X_train_pc, X_test_pc)),
-                    np.concatenate((y_train_pc, y_test_pc)),
+                    X_train_pc,
+                    y_train_pc,
                     cv=5)
 
 #%% [markdown]
@@ -1596,8 +1670,8 @@ print_confusion_matrix(clf_nb, X_test, y_test)
 
 #%%
 plot_learning_curve(clf_nb, "Learning curve of GaussianNB", 
-                    np.concatenate((X_train, X_test), axis=0), 
-                    np.concatenate((y_train, y_test), axis=0), 
+                    X_train, 
+                    y_train, 
                     cv=5)
 
 #%% [markdown]
@@ -1621,8 +1695,8 @@ print_confusion_matrix(gs_pc_rf, X_test_pc, y_test_pc)
 
 #%%
 plot_learning_curve(gs_pc_rf.best_estimator_, "Learning curve of Random Forest Classifier", 
-                    np.concatenate((X_train_pc, X_test_pc)),
-                    np.concatenate((y_train_pc, y_test_pc)), 
+                    X_train_pc,
+                    y_train_pc,
                     cv=5)
 
 #%% [markdown]
@@ -1689,8 +1763,8 @@ print_confusion_matrix(gs_knn, X_train_pc, y_train_pc)
 #%%
 
 plot_learning_curve(gs_knn.best_estimator_, "Learning curve of Random Forest Classifier", 
-                    np.concatenate((X_train_pc, X_test_pc)),
-                    np.concatenate((y_train_pc, y_test_pc)), 
+                    X_train_pc,
+                    y_train_pc,
                     cv=5)
 
 
@@ -1800,7 +1874,10 @@ print_performances(classifiers, classifier_names, auc_scores, X_test_pc, y_test_
 # If we are in a wood, how can we survive without the help of an SVM? 
 # Let's find out what are the peculiar traits of a poisonous mushroom 
 #
-# Firstly, we create a KNN classifier and we see which are scores
+# Firstly, we create a KNN classifier and we iterate on all the columns,
+# to see which of them gives a more accurate classification; 
+# In this way we can see which ones are the most important charateristics to
+# classify a mushroom.
 
 #%%
 
@@ -1818,11 +1895,18 @@ for i in range(n_features):
 
 print(t)
 
+#%% [markdown]
+# Let's now select all the features that are more significant; we will 
+# pick the ones with a score greater than 0.7
 #%%
 
 f_importance = pd.Series(data = feature_score, index = pre_ohc_data.columns)
 f_importance.sort_values(ascending=False, inplace=True)
 f_importance[f_importance > 0.7]
+
+#%% [markdown]
+# Now we merge the unlabelled dataset with the labels, in such a way that
+# we can group our samples using the class.
 
 #%%
 
@@ -1831,9 +1915,24 @@ pre_ohc_Xy = pd.concat([pre_ohc_data, pd.DataFrame(y_data, columns=['class'])], 
 grouped = pre_ohc_Xy.groupby('class')
 
 #%%
-grouped.get_group(0)[col_importance].sum()
+feat_edible = grouped.get_group(0)[col_importance].sum()
+feat_edible
+#%%
+feat_poisonous = grouped.get_group(1)[col_importance].sum()
+feat_poisonous
 
 #%%
-grouped.get_group(1)[col_importance].sum()
+n_samples = pre_ohc_data.shape[0]
+total = 0.0
+for n_ed, n_pos in zip(feat_edible, feat_poisonous):
+    cum = ((n_pos)/(n_ed + n_pos)) * ((n_ed + n_pos)/n_samples)
+    total = total + cum - total * cum
 
+print(total)
 #%%
+print(feat_edible[0]
+
+#%% [markdown]
+# These above are the mushrooms having those features, respectively in the 
+# two classes; It is clear that those features.
+
