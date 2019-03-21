@@ -43,11 +43,16 @@ COLORSCALE_HEATMAP = [         [0.0, 'rgb(70,0,252)'],
 PLOTLY_OPACITY = 0.7
 RANDOM_SEED = 11
 
-LOGISTIC_REGRESSION_PARAMS = {
+LOGISTIC_REGRESSION_PARAMS = [{
     'clf__solver': ['liblinear'],  # best for small datasets
-    'clf__C': [0.01, 0.1, 1, 10, 100], # smaller value, stronger regularization, like svm
+    'clf__C': [0.001, 0.01, 0.1, 1, 10, 100, 1000], # smaller value, stronger regularization, like svm
     'clf__penalty': ['l2', 'l1']
-}
+},
+{
+    'clf__solver': ['newton-cg', 'lbfgs'], 
+    'clf__C': [0.001, 0.01, 0.1, 1, 10, 100],
+    'clf__penalty': ['l2'] # `newton-cg` and `lbfgs` accept only l2
+}]
 
 SVM_PARAMS = [
 {
@@ -1029,17 +1034,20 @@ iplot(fig, filename='clusters-scatter')
 # Now, before starting the classification phase, let's see what kind of pre-processed data it is better to use to achieve the best classification possible.
 # Due to the fact that our dataset is pretty small, probably the dimensionality reduction using PCA is not strictly necessary, but if we can achieve a similar score using just main principal components, it is definitely better.
 #
-# We are going to compare results of a classification method on the different datasets. In this way we can choose the one to pick for the next phase. 
+# We are going to compare results of several classification methods on the different datasets. In this way we can choose the one 
+# to pick for the next phase. 
 # The current versions of the dataset are:
 #
 # 1. Full dataset.
-# 2. Dataset with missing values removed.
-# 3. Reduced dataset by means of PCA.
+# 2. Reduced dataset by means of PCA.
+# 3. Dataset with missing values removed.
+# 4. Dataset with missing values removed reduced using PCA
+# 5. Dataset with column containing missing values removed 
+# 6. Dataset encoded with OneHotEncoder
+# 7. Dataset encoded with OneHotEncoder compressed using PCA
 #
-#
-# Our dataset is pretty balanced, so we do not need any over or under-sampling technique. If we will perform poorly in classification, we could try to use some ensemble learning methods, but they should not be necessary.
+# Our dataset is pretty balanced, so we do not strictly need any over or under-sampling technique.
 # Let's start with splitting the datasets in train and test.
-
 
 #%%
 '''
@@ -1070,7 +1078,10 @@ X_train_ohc_pc, X_test_ohc_pc, y_train_ohc_pc, y_test_ohc_pc = train_test_split(
 X_train_ohc, X_test_ohc, y_train_ohc, y_test_ohc = train_test_split(pre_ohc_data, y_data, test_size=0.2, random_state=RANDOM_SEED)
 
 #%% [markdown]
-# The method used to pick the "best" dataset will be Logistic Regression, and we will tune its parameters using a grid search cross validation. 
+# We will apply different classification models on our datasets without any tuning of the parameters. In this way we can 
+# see which datasets gives an overall efficient tradeoff between accuracy and time.
+# In the next phase we will analyze one classifier at a time optimizing its parameters to obtain the best
+# accuracy.
 # 
 # Let's start defining the functions that we are going to use:
 
@@ -1083,9 +1094,6 @@ def print_gridcv_scores(grid_search, n=5):
     :param (estimator) clf: Classifier object
     :param (int) n: Best n scores 
     """    
-
-    if not hasattr(grid_search, 'best_score_'):
-        raise KeyError('grid_search is not fitted.')
     
     t = PrettyTable()
 
@@ -1430,15 +1438,14 @@ def print_performances(classifiers, classifier_names, auc_scores, X_test, y_test
 
 # Let's start defining the Stratified K-Folds cross-validator; it provides train/test indices to split data in train/test sets.
 #
-# This cross-validation object is a variation of KFold that returns stratified folds. The folds are made by preserving the percentage of samples for each class. Stratification is generally a better scheme, both in terms of bias and variance, when compared to regular cross-validation.
+# This cross-validation object is a variation of KFold that returns stratified folds. The folds are made by preserving the percentage of 
+# samples for each class. Stratification is generally a better scheme, both in terms of bias and variance, when compared to 
+# regular cross-validation.
 #
-# Then we define our LogisticRegression classifier, setting the `random_state` parameter to our usual seed value, in such a way that we can classify each time in the same way.
+# Then we define our classifiers, setting the `random_state` parameter to our usual seed value, 
+# in such a way that we can classify each time in the same way.
 #%% 
-'''
-kf = StratifiedKFold(n_splits=5, random_state=RANDOM_SEED)
-clf_lr = LogisticRegression(random_state=RANDOM_SEED)
-TEST_PARAMS = LOGISTIC_REGRESSION_PARAMS
-'''
+
 kf = StratifiedKFold(n_splits=5, random_state=RANDOM_SEED)
 clf_nb = GaussianNB()
 clf_knn = KNeighborsClassifier()
@@ -1449,52 +1456,8 @@ clfs = [clf_nb, clf_knn, clf_rf, clf_lr, clf_svm]
 TEST_PARAMS = {}
 
 #%% [markdown]
-# Then we perform a grid search over all the parameters of the LogisticRegressor model.
-#
-# They are:
-# - `liblinear` for solver, which is better for smaller datasets
-# - `C` different values of this, ranging from 0.01 to 100. A smaller value inidicates stronger regularization, like in svms.
-# - `penalty` "l1" and "l2" penalty for regularization, which are defined as:
-#   - l1, it penalizes every mistake at the same way
-#     $$ 
-#     S = \Sigma_{i=1}^{n}{|y_i - f(x_i)|}
-#     $$
-#   - l2, it penalizes bigger values
-#     $$ 
-#     S = \Sigma_{i=1}^{n}{(y_i - f(x_i))^2}
-#     $$
-#     - Where $y_i$ is the true label and $f(x_i)$ is the assigned label
-
-
-
-
+# We set `TEST_PARAMS` empty, because in this phase we are not interested in tuning parameters.
 #%%
-'''
-print("Full dataset cv:")
-gs_full = param_tune_grid_cv(clf_lr, TEST_PARAMS, X_train, y_train, kf)
-print("\nDataset projected on first 9 pc cv:")
-gs_pc = param_tune_grid_cv(clf_lr, TEST_PARAMS, X_train_pc, y_train_pc, kf)
-print("\nFull dataset with dropped values took:")
-gs_drop = param_tune_grid_cv(clf_lr, TEST_PARAMS, X_train_drop, y_train_drop, kf)
-print("\nProjected dataset with dropped values took:")
-gs_pc_drop = param_tune_grid_cv(clf_lr, TEST_PARAMS, X_train_pc_drop, y_train_pc_drop, kf)
-print("\nFull dataset without stalk-root column:")
-gs_no_stalk = param_tune_grid_cv(clf_lr, TEST_PARAMS, X_train_no_stalk, y_train_no_stalk, kf)
-print("\nDataset one hot encoded on first 20 components:")
-gs_ohc_pc = param_tune_grid_cv(clf_lr, TEST_PARAMS, X_train_ohc_pc, y_train_ohc_pc, kf)
-print("\nDataset one hot encoded")
-gs_ohc = param_tune_grid_cv(clf_lr, TEST_PARAMS, X_train_ohc, y_train_ohc, kf)
-
-gss = [gs_full, gs_pc, gs_drop, gs_pc_drop, gs_no_stalk, gs_ohc_pc, gs_ohc]
-
-test_results = score(gss, [(X_test, y_test), 
-                           (X_test_pc, y_test_pc), 
-                           (X_test_drop, y_test_drop), 
-                           (X_test_pc_drop, y_test_pc_drop),
-                           (X_test_no_stalk, y_test_no_stalk),
-                           (X_test_ohc_pc, y_test_ohc_pc),
-                           (X_test_ohc, y_test_ohc)])
-'''
 all_test_results = []
 all_gss = []
 times = np.zeros(7)
@@ -1536,7 +1499,7 @@ for clf in clfs:
   all_test_results.append(test_results)
 
 #%% [markdown]
-# This is the score of the different classification on the test set:
+# This is the score of the different classifiers on the different datasets.
 
 #%%
 dataset_strings = [" ", "full dataset", 
@@ -1547,7 +1510,7 @@ dataset_strings = [" ", "full dataset",
                    "dataset ohc reduced on first 20 PC",
                    "dataset ohc"]
 
-row_names = ["Naive Bayes", "KNN", "Random Forest", "Linear Regression", "SVM"]
+row_names = ["Naive Bayes", "KNN", "Random Forest", "Logistic Regression", "SVM"]
 
 t = PrettyTable()
 t.field_names = dataset_strings
@@ -1570,7 +1533,8 @@ for k in all_rows:
 print(t)
 #%% [markdown]
 # After have evaluated all these results, we are going to select the one that 
-# have the best tradeoff between time and score
+# have the best tradeoff between time and score. Let's plot the mean score and the overall time taken to train all
+# the different classifiers with respect to the same dataset.
 #%%
 
 means = np.mean(all_test_results, axis=0)
@@ -1584,30 +1548,57 @@ time_table.add_row(mean_row)
 print(time_table)
   
 print("The dataset that gives the best overall performances is:")
-print("\t- " + dataset_strings[means.argmax()] + " with a score of " + str("%.3f" % means.max()))
+print("\t- " + dataset_strings[means.argmax()] + ", with a score of " + str("%.3f" % means.max()))
 
 #%% [markdown]
-# We can notice that the classfication score achieved with the dataset in which the missing values were
-# removed is the best one. Probably beacuse, with the full dataset, the classifier learnt some 
-# not existent correlations between the missing value encoded and the other features. 
-# Moreover, being the dataset easy to classify overall, reducing the amount of samples does not
-# cause issues on the training of our model.
-# 
-# In any case, looking at the performances, there is a big difference between the full dataset
-# and the one containing only principal components; due to this, in the next steps we are going to
-# use the reduced dataset, beacuse we can achieve an high score saving a lot of time.
+# As we can see, the most accurate is the dataset encoded with OneHotEncoder; The training time though is really high 
+# with respect to the other datasets. A good tradeoff could be using the full dataset, because the accuracy is high and the
+# training time is reasonable. 
+#
+# But considering that the scores obtained are achieved without parameter tuning, I prefer to choose a "faster" dataset, even if the scores
+# are not already optimal. 
+# From this point on, the classifiers will be tested on the full dataset with PCA. This because the cross-validation phase
+# is almost four times faster, and the scores are similar.
+
+#%% [markdown]
+# ### Logistic Regression
+# The first classifier that we will analyze is the Logistic Regression classifier. It uses the 
+# sigmoid function to classify our samples:
+#
+# $$ 
+# P(y=0 | X;\theta) = g(w^T X) = \frac{1}{1+e^{w^T X}}
+# P(y=1 | X;\theta) = 1 - g(w^T X) = \frac{e^{w^T X}}{1+e^{w^T X}}
+# $$
+# This model, with respect to linear regression, can model better the zone close to 
+# 0 and 1. To learn the weights, the $MLE$ is found and then the gradient descent algorithm 
+# is applied until the accuracy converges
+#
+# They are:
+# - `liblinear` for solver, which is better for smaller datasets
+# - `C` regularization strength, ranging from 0.01 to 100. A smaller value inidicates stronger regularization, like in svms.
+# - `penalty` "l1" and "l2" penalty for regularization, which are defined as:
+#   - l1, it penalizes every mistake at the same way
+#     $$ 
+#     S = \Sigma_{i=1}^{n}{|y_i - f(x_i)|}
+#     $$
+#   - l2, it penalizes bigger values
+#     $$ 
+#     S = \Sigma_{i=1}^{n}{(y_i - f(x_i))^2}
+#     $$
+#     - Where $y_i$ is the true label and $f(x_i)$ is the assigned label
+
+clf_lr = LogisticRegression(random_state=RANDOM_SEED)
+gs_pc_lr = param_tune_grid_cv(clf_lr, LOGISTIC_REGRESSION_PARAMS, X_train_pc, y_train_pc, kf)
+print_gridcv_scores(gs_pc_lr, n=5)
 
 #%%
-print_gridcv_scores(gs_drop)
-
-#%%
-print_confusion_matrix(gs_drop, X_test_drop, y_test_drop)
-
-#%% 
-plot_learning_curve(gs_drop.best_estimator_, "Learning Curve of Logistic Regression", 
-                    X_train_drop,
-                    y_train_drop, 
+plot_learning_curve(gs_pc_lr.best_estimator_, "Learning curve of Logistic Regression", 
+                    X_train_pc,
+                    y_train_pc,
                     cv=5)
+
+#%%
+print_confusion_matrix(gs_pc_lr, X_test_pc, y_test_pc)
 
 #%% [markdown]
 # ### Support vector machine
@@ -1663,9 +1654,10 @@ print_confusion_matrix(gs_pc_svm, X_test_pc, y_test_pc)
 
 #%%
 clf_nb = GaussianNB()
-clf_nb.fit(X_train, y_train)
-print_raw_score(clf_nb, X_test, y_test)
-print_confusion_matrix(clf_nb, X_test, y_test)
+gs_pc_nb = param_tune_grid_cv(clf_nb, TEST_PARAMS, X_train_pc, y_train_pc, kf)
+print_gridcv_scores(gs_pc_nb, n=5)
+
+print_confusion_matrix(gs_pc_nb, X_test_pc, y_test_pc)
 
 
 #%%
@@ -1860,7 +1852,7 @@ def plot_roc_curve(classifiers, legend, title, X_test, y_test):
 
 #%%
 
-classifiers = [gs_drop, gs_pc_svm, clf_nb, gs_pc_rf, gs_knn]
+classifiers = [gs_pc_lr, gs_pc_svm, clf_nb, gs_pc_rf, gs_knn]
 classifier_names = ["Logistic Regression", "SVM", "GaussianNB", "Random Forest", "KNN"]
 auc_scores, roc_plot = plot_roc_curve(classifiers, classifier_names, "ROC curve", X_test, y_test)
 roc_plot
