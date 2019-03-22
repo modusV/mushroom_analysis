@@ -2,7 +2,14 @@
 
 # # Safe to eat or deadly poisonous?
 # ### An analysis on mushroom classification by Lorenzo Santolini
-
+#
+# ### Index:
+#   1. [Introduction](#introduction)
+#   2. [Dataset Analysis](#dsl)
+#   3. [Preprocessing](#preprocessing)
+#   4. [Principal Component Analysis](#pca)
+#   5. [Classification](#classification)
+#   6. [Conclusions](#conclusions)
 #%% [markdown]
 # This is a little code to import automatically the dataset into google colab. 
 # Provide your kaggle's API key (profile section) when file requested
@@ -20,6 +27,7 @@ from google.colab import files
 files.upload()
 
 !cp kaggle.json ~/.kaggle/
+!chmod 600 /root/.kaggle/kaggle.json
 !kaggle datasets download -d uciml/mushroom-classification
 !unzip mushroom-classification.zip
 !ls
@@ -80,6 +88,7 @@ KNN_PARAMS = {
 
 
 #%% [markdown]
+# <a id='introduction'></a>
 ## Introduction
 # This dataset includes descriptions of hypothetical samples corresponding to 23 species of gilled mushrooms in the Agaricus and Lepiota Family Mushroom. Each species is identified as edible or poisonous. Rows are composed by 23 different fields, each one of them identifying a specific charateristic:
 
@@ -218,6 +227,7 @@ class Classifier:
 
 '''
 #%% [markdown]
+# <a id='dsl'></a>
 ## Dataset load and overall view
 # Let's start importing the data:
 
@@ -248,6 +258,7 @@ print(f"Unique values for every field: \n{dataset.nunique()}")
 # see all the fields of the dataset with the respective values.
 
 #%% [markdown]
+# <a id='preprocessing'></a>
 ## Preprocessing
 
 # Before starting the classification phase, we need to preprocess the dataset, in 
@@ -847,7 +858,7 @@ X_no_stalk, y_no_stalk = dataframe_to_array(data_no_stalk)
 X_scaled_no_stalk = scale_data(X_no_stalk)
 
 #%% [markdown]
-
+# <a id='pca'></a>
 # ## Principal component analysis
 # When our data are represented by a matrix too large (the number of dimensions is too high), it is difficult to extract the most interesting features and find correlations among them; moreover the space occupied is very high. PCA is a technique that allows to achieve dimensionality reduction while preserving the most important differences among samples. 
 # 
@@ -1027,7 +1038,7 @@ iplot(fig, filename='clusters-scatter')
 
 # Using K-means we are able to separate two classes using the two components with maximum variance.
 #%% [markdown]
-
+# <a id='classification'></a>
 ## Classification
 # Now we are going to explore different classification methods, and see in the end the one that performs better. 
 #
@@ -1924,6 +1935,7 @@ for n_ed, n_pos in zip(feat_edible, feat_poisonous):
 print(total)
 
 #%% [markdown]
+# <a id='conclusions'></a>
 # ## Conclusions
 # Our goal was to predict if a mushroom was poisonous or edible from its features.
 #  
