@@ -74,14 +74,14 @@ SVM_PARAMS = [
 }]
 
 RANDOM_FOREST_PARAMS = {
-    'clf__max_depth': [25, 50, 75],
+    'clf__max_depth': [50, 75, 100],
     'clf__max_features': ["sqrt", "log2"], # sqrt is the same as auto
     'clf__criterion': ['gini', 'entropy'],
-    'clf__n_estimators': [100, 300, 500, 1000]
+    'clf__n_estimators': [100, 300, 500]
 }
 
 KNN_PARAMS = {
-    'clf__n_neighbors': [5, 15, 25, 35, 45, 55, 65],
+    'clf__n_neighbors': [2, 3, 5, 15, 25],
     'clf__weights': ['uniform', 'distance'],
     'clf__p': [1, 2, 10]
 }
@@ -1698,6 +1698,16 @@ feature_importance = np.array(  sorted(zip(X_train_pc.columns,
                                 key=lambda x: x[1], reverse=True))
 plot_feature_importance(feature_importance, "Feature importance in the random forest")
 
+#%% [markdown]
+# Here we just see which are the components that weight more in the classification, but due
+# to the fact that we have reduced our dataset with principal component analysis, this 
+# information is not so relevant. 
+#
+# If we would use the full dataset, we would see that the most important features are:
+#
+# 1. `bruises`
+# 2. `gill-size`
+# 3. `gill-spacing`
 
 #%% [markdown]
 # ### K-Nearest Neighbors Classifier
@@ -1733,7 +1743,7 @@ print_confusion_matrix(gs_knn, X_train_pc, y_train_pc)
 
 #%%
 
-plot_learning_curve(gs_knn.best_estimator_, "Learning curve of Random Forest Classifier", 
+plot_learning_curve(gs_knn.best_estimator_, "Learning curve of k-NN Classifier", 
                     X_train_pc,
                     y_train_pc,
                     cv=5)
@@ -1857,8 +1867,8 @@ print_performances(classifiers, classifier_names, auc_scores, X_test_pc, y_test_
 # with the naive bayes is better to use the whole dataset. Infact 
 # the one OneHotEncoded anchieves a really high score, namely 0,945 (see score table in the choice
 # of the dataset phase).
-# The SVM is the classifier that achieved the best score, hitting the 1 value on every parameter.
-# The K-NN and the Random Forest classifier achieved a similar score, even if slightly 
+# The SVM and the K-NN are the classifiers that achieved the best score, hitting the 1 value on every parameter.
+# The the Random Forest classifier achieved a similar score, even if slightly 
 # worse in accuracy and in recall.
 #%% [markdown]
 
@@ -1914,7 +1924,7 @@ feat_edible
 #%%
 feat_poisonous = grouped.get_group(1)[col_importance].sum()
 feat_poisonous
-
+'''
 #%%
 n_samples = pre_ohc_data.shape[0]
 total = 0.0
@@ -1923,7 +1933,7 @@ for n_ed, n_pos in zip(feat_edible, feat_poisonous):
     total = total + cum - total * cum
 
 print(total)
-
+'''
 #%% [markdown]
 # <a id='conclusions'></a>
 # ## Conclusions
