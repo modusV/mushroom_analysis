@@ -69,8 +69,8 @@ SVM_PARAMS = [
 }, 
 {
     'clf__kernel': ['rbf'],
-    'clf__C': [0.01, 0.1, 1, 10, 100],
-    'clf__gamma': [0.01, 0.1, 1, 10, 100],
+    'clf__C': [0.1, 1, 10, 100],
+    'clf__gamma': [0.1, 1, 10, 100],
 }]
 
 RANDOM_FOREST_PARAMS = {
@@ -188,44 +188,6 @@ def watcher(func):
         return result
     return wrapper
 
-#%% 
-'''
-# Define classes 
-
-class Dataset:
-    
-    def __init__(self, data, seed, name):
-        self.dataset = data
-        self.seed = seed
-        self.name = name
-        
-    def set_name(self, name):
-        self.name = name
-    
-    @property
-    def name(self):
-        return self.__name
-
-    def import_data(path):
-        self.dataset = pd.read_csv(path)
-
-    def count_classes():
-        self.n_classes = self.dataset['class'].unique().size
-        print(f"There are {self.n_classes} different classes:"
-              f"\n {self.dataset['class'].unique().tolist()}")
-
-
-
-class Classifier:
-
-    def __init__(self, classifier, params, dataset, seed, name):
-        self.classifier = classifier
-        self.params = params
-        self.dataset = dataset
-        self.seed = seed
-        self.name = name
-
-'''
 #%% [markdown]
 # <a id='dsl'></a>
 ## Dataset load and overall view
@@ -1040,7 +1002,7 @@ iplot(fig, filename='clusters-scatter')
 #%% [markdown]
 # <a id='classification'></a>
 ## Classification
-# Now we are going to explore different classification methods, and see in the end the one that performs better. 
+# Now we are going to explore different supervised learning classification methods, and see in the end the one that performs better. 
 #
 # Now, before starting the classification phase, let's see what kind of pre-processed data it is better to use to achieve the best classification possible.
 # Due to the fact that our dataset is pretty small, probably the dimensionality reduction using PCA is not strictly necessary, but if we can achieve a similar score using just main principal components, it is definitely better.
@@ -1059,22 +1021,6 @@ iplot(fig, filename='clusters-scatter')
 #
 # Our dataset is pretty balanced, so we do not strictly need any over or under-sampling technique.
 # Let's start with splitting the datasets in train and test.
-
-#%%
-'''
-X_scaled_data, y_data = shuffle(X_scaled_data, y_data, random_state=RANDOM_SEED)
-X_df_reduced, y_data_reduced = shuffle(X_df_reduced, y_data, random_state=RANDOM_SEED)
-X_scaled_drop_data, y_drop_data = shuffle(X_scaled_drop_data, y_drop_data, random_state=RANDOM_SEED)
-X_df_drop_reduced, y_drop_reduced = shuffle(X_df_drop_reduced, y_drop_data, random_state=RANDOM_SEED)
-X_scaled_no_stalk, y_no_stalk = shuffle(X_scaled_no_stalk, y_no_stalk, random_state=RANDOM_SEED)
-X_df_ohc_reduced, y_ohc_reduced = shuffle(X_df_ohc_reduced, y_data, random_state=RANDOM_SEED)
-
-X_train_drop, y_train_drop = shuffle(X_train_drop, y_train_drop, random_state=RANDOM_SEED)
-X_train_no_stalk, y_train_no_stalk = shuffle(X_train_no_stalk, y_train_no_stalk, random_state=RANDOM_SEED)
-X_train_pc, y_train_pc = shuffle(X_train_pc, y_train_pc, random_state=RANDOM_SEED)
-X_train_pc_drop, y_train_pc_drop = shuffle(X_train_pc_drop, y_train_pc_drop, random_state=RANDOM_SEED)
-X_train_ohc_pc, y_train_ohc_pc = shuffle(X_train_ohc_pc, y_train_ohc_pc, random_state=RANDOM_SEED)
-'''
 
 #%%
 
@@ -1247,6 +1193,7 @@ def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=
     test_scores_mean = np.mean(test_scores, axis=1)
     test_scores_std = np.std(test_scores, axis=1)
     
+    # Prints lower bound (mean - std) of train 
     trace1 = go.Scatter(
         x=train_sizes, 
         y=train_scores_mean - train_scores_std, 
@@ -1261,6 +1208,7 @@ def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=
             color = hexToRGBA(PLOTLY_COLORS[0], 0.4),
         ),
     )
+    # Prints upper bound (mean + std) of train
     trace2 = go.Scatter(
         x=train_sizes, 
         y=train_scores_mean + train_scores_std, 
@@ -1276,6 +1224,8 @@ def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=
             color = hexToRGBA(PLOTLY_COLORS[0], 0.4),
         ),
     )
+    
+    # Prints mean train score line
     trace3 = go.Scatter(
         x=train_sizes, 
         y=train_scores_mean, 
@@ -1286,6 +1236,7 @@ def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=
         ),
     )
     
+    # Prints lower bound (mean - std) of test 
     trace4 = go.Scatter(
         x=train_sizes, 
         y=test_scores_mean - test_scores_std, 
@@ -1300,6 +1251,7 @@ def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=
             color = hexToRGBA(PLOTLY_COLORS[1], 0.4),
         ),
     )
+        # Prints upper bound (mean + std) of test
     trace5 = go.Scatter(
         x=train_sizes, 
         y=test_scores_mean + test_scores_std, 
@@ -1315,6 +1267,8 @@ def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=-1, train_sizes=
             color = hexToRGBA(PLOTLY_COLORS[1], 0.4),
         ),
     )
+
+    # Prints mean test score line 
     trace6 = go.Scatter(
         x=train_sizes, 
         y=test_scores_mean, 
@@ -1578,6 +1532,7 @@ print("\t- " + dataset_strings[means.argmax()] + ", with a score of " + str("%.3
 #
 # $$ 
 # P(y=0 | X;\theta) = g(w^T X) = \frac{1}{1+e^{w^T X}}
+#
 # P(y=1 | X;\theta) = 1 - g(w^T X) = \frac{e^{w^T X}}{1+e^{w^T X}}
 # $$
 # This model, with respect to linear regression, can model better the zone close to 
@@ -1598,6 +1553,8 @@ print("\t- " + dataset_strings[means.argmax()] + ", with a score of " + str("%.3
 #     $$
 #     - Where $y_i$ is the true label and $f(x_i)$ is the assigned label
 
+#%%
+
 clf_lr = LogisticRegression(random_state=RANDOM_SEED)
 gs_pc_lr = param_tune_grid_cv(clf_lr, LOGISTIC_REGRESSION_PARAMS, X_train_pc, y_train_pc, kf)
 print_gridcv_scores(gs_pc_lr, n=5)
@@ -1608,6 +1565,14 @@ plot_learning_curve(gs_pc_lr.best_estimator_, "Learning curve of Logistic Regres
                     y_train_pc,
                     cv=5)
 
+#%% [markdown]
+# From the graph we can see that the two lines approach themselves ans the test score
+# tends to the train score. In this case, from the graph is evident that adding more
+# samples is useless; we have more than enough, but the model is not complex enough to 
+# anchieve higher scores.
+
+#%% [markdown]
+# From the learning curve we can see that, at the beginning 
 #%%
 print_confusion_matrix(gs_pc_lr, X_test_pc, y_test_pc)
 
@@ -1620,7 +1585,7 @@ print_confusion_matrix(gs_pc_lr, X_test_pc, y_test_pc)
 # 
 # We perform the grid search over:
 # - `linear`. This is the simplest SVM, finds the hyperplane which separates in the best way our samples.
-#   - `C`. The C parameter tells the SVM optimization how much you want to avoid misclassifying 
+# - `C`. The C parameter tells the SVM optimization how much you want to avoid misclassifying 
 #           each training example. For large values of C, the optimization will choose a smaller-margin 
 #           hyperplane if that hyperplane does a better job of getting all the training points 
 #           classified correctly.
@@ -1641,7 +1606,13 @@ plot_learning_curve(gs_pc_svm.best_estimator_, "Learning curve of SVM",
                     cv=5)
 
 #%% [markdown]
-# The achieved score is really high. Let's see the confusion matrix:
+# We can see from the learning curve that we can achieve optimal performances
+# before running out of training samples. After approximately 1300 samples analyzed,
+# we already achieve a test score greater than 0.99 with very standard deviation.
+# 
+# This is the best score possibly achievable.
+# We could expect it, but we will print anyway the confusion matrix:
+# 
 
 #%%
 print_confusion_matrix(gs_pc_svm, X_test_pc, y_test_pc)
@@ -1654,10 +1625,17 @@ print_confusion_matrix(gs_pc_svm, X_test_pc, y_test_pc)
 #%% [markdown]
 
 # ### Naive Bayes Classifier
-# The naive bayes classifier is based on the bayes theorem which states that:
+# The naive bayes classifier is based on the Bayes theorem, which states that:
+#
 # $$
-# P(y|X) = \frac{P(X|y)P(y)}{P(X)}
+# P(A|B) = \frac{P(B|A)P(A)}{P(B)}
 # $$
+#
+# Where
+# - $P(A)$, the prior, is the initial degree of belief in A.
+# - $P(A|B)$, the posterior is the degree of belief having accounted for B.
+# - $P(B|A$), is the likelyhood, the degree of belief in B, given that A is true.
+#
 # Using Bayes theorem, we can find the probability of A happening, 
 # given that B has occurred. Here, B is the evidence and A is the hypothesis. The assumption made 
 # here is that the predictors/features are independent. That is presence of one particular 
@@ -1670,12 +1648,19 @@ print_gridcv_scores(gs_pc_nb, n=5)
 
 print_confusion_matrix(gs_pc_nb, X_test_pc, y_test_pc)
 
-
 #%%
 plot_learning_curve(clf_nb, "Learning curve of GaussianNB", 
                     X_train, 
                     y_train, 
                     cv=5)
+
+#%% [markdown]
+# To be a really simple classifier, it can achieve decent results. The independecy assumption
+# does not work perfectly, because the different features are not completely independent from 
+# each other, but nevertheless it manages to achieve a good accuracy even if we used only 
+# the data projected on the principal components. With the naive bayes classifier, it is alway 
+# better to use the original datasets, beign really fast itself to train and to classify.
+
 
 #%% [markdown]
 # ### Random Forest Classifier
@@ -1714,19 +1699,6 @@ feature_importance = np.array(  sorted(zip(X_train_pc.columns,
 plot_feature_importance(feature_importance, "Feature importance in the random forest")
 
 
-#%%
-'''
-print("Full dataset cv:")
-gs_full = param_tune_grid_cv(clf_svm, SVM_PARAMS, X_train, y_train, kf)
-print("\nDataset projected on first 9 pc cv:")
-gs_pc = param_tune_grid_cv(clf_svm, SVM_PARAMS, X_train_pc, y_train_pc, kf)
-print("\nFull dataset with dropped values took:")
-gs_drop = param_tune_grid_cv(clf_svm, SVM_PARAMS, X_train_drop, y_train_drop, kf)
-gss = [gs_full, gs_pc, gs_drop]
-
-test_results = score(gss, [(X_test, y_test), (X_test_pc, y_test_pc), (X_test_drop, y_test_drop)])
-'''
-
 #%% [markdown]
 # ### K-Nearest Neighbors Classifier
 # K-NN is a type of instance-based learning, or lazy learning, where the function 
@@ -1756,11 +1728,6 @@ clf_knn = KNeighborsClassifier()
 gs_knn = param_tune_grid_cv(clf_knn, KNN_PARAMS, X_train_pc, y_train_pc, kf)
 print_gridcv_scores(gs_knn, n=5)
 
-'''
-clf_knn = KNeighborsClassifier()
-gs_knn = param_tune_grid_cv(clf_knn, KNN_PARAMS, X_train, y_train, kf)
-print_gridcv_scores(gs_knn, n=5)
-'''
 #%%
 print_confusion_matrix(gs_knn, X_train_pc, y_train_pc)
 
@@ -1869,11 +1836,34 @@ classifier_names = ["Logistic Regression", "SVM", "GaussianNB", "Random Forest",
 auc_scores, roc_plot = plot_roc_curve(classifiers, classifier_names, "ROC curve", X_test, y_test)
 roc_plot
 
+#%% [markdown]
+# Now let's look at some additional parameters that evaluate the goodness of our models:
+# 
+# 1. Accuracy
+# 2. Precision
+#       - $P = \frac{TP}{TP+FP}$
+# 3. Recall
+#       - $R = \frac{TP}{TP+FN}$
+# 4. F1 (weighted average of the precision and recall)
+#       - $F1= 2*\frac{P * R}{P + R}$
+# 5. Auc, area under the ROC curve
 #%%
 print_performances(classifiers, classifier_names, auc_scores, X_test_pc, y_test_pc)
 
 #%% [markdown]
+# The table shows that overall all classifiers performed well. The naive Bayes classifier
+# is the one that performed worse, being the simplest one of them. Another reason is because
+# we used the reduced dataset in classification; due to the fact that it is really fast, 
+# with the naive bayes is better to use the whole dataset. Infact 
+# the one OneHotEncoded anchieves a really high score, namely 0,945 (see score table in the choice
+# of the dataset phase).
+# The SVM is the classifier that achieved the best score, hitting the 1 value on every parameter.
+# The K-NN and the Random Forest classifier achieved a similar score, even if slightly 
+# worse in accuracy and in recall.
+#%% [markdown]
 
+# ## What NOT to do in the woods
+#
 # To have a little bit more fun we will try one more thing.
 # If we are in a wood, how can we survive without the help of an SVM? 
 # Let's find out what are the peculiar traits of a poisonous mushroom 
