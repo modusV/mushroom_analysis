@@ -1735,9 +1735,17 @@ feature_importance = np.array(  sorted(zip(X_train_pc.columns,
 plot_feature_importance(feature_importance, "Feature importance in the random forest")
 
 #%% [markdown]
-# Here we just see which are the components that weight more in the classification, but due
-# to the fact that we have reduced our dataset with principal component analysis, this 
-# information is not so relevant. 
+# Here we just see which are the components that weight more in the classification, but due to the 
+# fact that we reduced the dataset by means of PCA, we only see which component weighted more in
+# the node splitting phase. Why the last components weight more than the first, the ones
+# which contain most of the variability?
+#
+# The first principal component is a linear combination of all our features. The fact that it explains almost all the 
+# variability just means that most of the coefficients of the variables in the first principal component are significant.
+# The classification trees we generate do binary splits on 
+# continuous variables that best separate the categories we want to classify. That is not exactly 
+# the same as finding orthogonal linear combinations of continuous variables that give the direction 
+# of greatest variance. 
 #
 # If we would use the full dataset, we would see that the most important features are:
 #
@@ -1875,9 +1883,9 @@ def plot_roc_curve(classifiers, legend, title, X_test, y_test):
 
 #%%
 
-classifiers = [gs_pc_lr, gs_pc_svm, clf_nb, gs_pc_rf, gs_knn]
+classifiers = [gs_pc_lr, gs_pc_svm, gs_pc_nb, gs_pc_rf, gs_knn]
 classifier_names = ["Logistic Regression", "SVM", "GaussianNB", "Random Forest", "KNN"]
-auc_scores, roc_plot = plot_roc_curve(classifiers, classifier_names, "ROC curve", X_test, y_test)
+auc_scores, roc_plot = plot_roc_curve(classifiers, classifier_names, "ROC curve", X_test_pc, y_test_pc)
 roc_plot
 
 #%% [markdown]
