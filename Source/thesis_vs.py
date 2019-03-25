@@ -160,7 +160,6 @@ from scipy.cluster import hierarchy as hc
 import scipy.spatial as scs
 
 from imblearn.pipeline import make_pipeline, Pipeline
-from imblearn.over_sampling import SMOTE
 
 import warnings
 from collections import defaultdict
@@ -259,6 +258,8 @@ print(f"Data types: \n{dataset.head(5)}")
 
 #%% [markdown]
 # ### 2 - Remove any not significant column
+# Now we will remove all the fields that do not add any information to our analysis,
+# specifically, the fields that contain only one value (zero variance).
 #%% 
 n_columns_original = len(dataset.columns)
 to_drop = [col for col in dataset.columns if dataset[col].nunique() == 1]
@@ -266,7 +267,7 @@ dataset.drop(to_drop, axis=1, inplace=True)
 
 for d in to_drop:
     print(str(d) + " ", end="")
-print("have been removed because zero variance")
+print("have been removed because they have zero variance")
 print(f"{n_columns_original - len(dataset.columns)} not significant columns have been removed")
 
 #%% [markdown]
@@ -274,8 +275,8 @@ print(f"{n_columns_original - len(dataset.columns)} not significant columns have
 
 #%% [markdown]
 # ### 3 - Handling missing values
-# When we find missing values in a dataset, there are some of the approaches that can be 
-# considered:  
+# When we find any missing value in a dataset, there are different 
+# approaches that can be considered:  
 #
 # 1. Delete all rows containing a missing value
 # 2. Substitute with a constant value that has meaning within the domain, such as 0, distinct from all other values.
@@ -301,7 +302,7 @@ print(f"{n_columns_original - len(dataset.columns)} not significant columns have
 # different from the others,
 # and simply apply the transformation as they were present.
 # 
-# 
+#
 # In any case, let's start counting how many null/missing values we will find.
 #%%
 # Check if any field is null
@@ -395,7 +396,7 @@ pre_data.head(5)
 # 
 # The problem here is, since there are different numbers in the same column, 
 # the model will misunderstand the data to be in some kind of order, 0 < 1 < 2. 
-# But this isn’t the case at all. To overcome this problem, we use One Hot Encoder.
+# But this isn’t the case at all. To overcome this problem, we use `OneHotEncoder`.
 #
 # What one hot encoding does is, it takes a column which has categorical data, 
 # which has been label encoded, and then splits the column into multiple columns. 
@@ -403,7 +404,7 @@ pre_data.head(5)
 # 
 # We will obtain two datasets; we will continue the analysis on the first one, but
 # meanwhile we will keep this one for the classification phase, to check if we 
-# may have an improvement.
+# have an improvement with respect to the other. 
 # 
 # We also drop the column with missing value, beacuse it is not significative.
 #%%
@@ -477,11 +478,11 @@ class_dict = ["edible", "poisonous"]
 pre_data.describe()
 
 #%% [markdown]
-# This is the class distribution plotten on a histogram. As we already saw before the class distribution is pretty balanced. 
+# This is the class distribution plot on a graph bar. As we already saw before the class distribution is pretty balanced. 
 # 
-# In this report the plotly library will be used. 
+# In this report, all the graphic part will use the `plotly` library. 
 # 
-# *Plotly.py* is an interactive, open-source, and browser-based graphing library for Python, which allows you to create interactive plots in a few steps.
+# *plotly.py* is an interactive, open-source, and browser-based graphing library for Python, which allows you to create interactive plots in a few steps.
 
 #%%
 data = [go.Bar(
@@ -592,10 +593,13 @@ py.iplot(fig, filename='box_slider')
 
 #%% [markdown]
 
-# From the boxplot above, we can see that the color and the shape of the cap are not an effective parameter to decide whether a mushroom is poisonous or edible, because their plots are very similar (same median and very close distribution). 
-# The odor and the population columns, on the other hand, are more significant; 
+# From the boxplot above, we can see that the color and the shape of the 
+# cap are not an effective parameter to decide whether a mushroom is 
+# poisonous or edible, because their plots are very similar (same median 
+# and very close distribution). 
+# The `odor` and the `population` columns, on the other hand, are more significant; 
 # 
-# In the odor field, all the edible mushrooms are squeezed into a single value
+# In the `odor` field, all the edible mushrooms are squeezed into a single value
 # with a few outliers, while the poisonous may have all the different values.
 
 #%% [markdown]
@@ -673,9 +677,15 @@ fig = dict(data=total_data, layout=layout)
 py.iplot(fig, filename='bar_slider')
 
 #%% [markdown]
-# From the bar graph we can see that the `cap-shape` and the `cap-color` are not that significant to classify a sample. On the other hand, some fields like `odor` show a distinct separation of the two classes; these ones will be the ones with more impact on our classification algorithms.
+# As we saw from the box plot, also here we can notice that
+# the `cap-shape` and the `cap-color` are not that significant to classify a sample. 
+# On the other hand, some fields like `odor` show a distinct 
+# separation of the two classes; these ones will be the ones with more 
+# impact on our classification algorithms.
 # 
-# From these bar graphs we can see that our dataset is pretty well separated. This means that, in our classification task, we will be able to achieve high accuracy even with some dimensionality reduction.
+# From these bar graphs we can see that our dataset is pretty well 
+# separated. This means that, in our classification task, we will be 
+# able to achieve high accuracy even with some dimensionality reduction.
 
 #%% [markdown]
 # ### 7 - Correlation matrix
@@ -729,11 +739,12 @@ fig = go.Figure(data=data, layout=layout)
 py.iplot(fig, filename='labelled-heatmap4')
 
 #%% [markdown]
-# From the matrix, we can see that the most correlated columns to the class are `gill-color`, `gill-size` and `bruises`.
+# From the matrix, we can see that the most correlated columns to 
+# the `class` field are `gill-color`, `gill-size` and `bruises`.
 #
 # The diagonal has correlation 1 because every class has maximum correlation with itself.
 #
-# We can also see that `veil-color` and `gill-attachment`are highly correlated.
+# We can also see that `veil-color` and `gill-attachment` are highly correlated.
 
 #%% [markdown]
 # ### 7 - Dendogram
@@ -792,7 +803,8 @@ iplot(fig, filename='dendrogram_corr_clustering')
 
 # After this step, we divide the dataset into an array of unclassified samples and an array of labels, to use for the classification phase.
 # 
-# At this point, I decide to bring to the next phase two different datasets:  
+# At the end, we decide to bring to the next step of our analysis two 
+# different datasets, plus the one that we created in the encoding phase.
 # 
 # 1. The full dataset, where the missing values are encoded with an integer.
 # 2. A reduced version of the dataset, where the rows with missing data are considered as incomplete samples and are dropped. 
@@ -928,8 +940,8 @@ plot
 # This allows us to work on a smaller dataset achieving similar results, 
 # because most of the information is maintained.
 # 
-# In the function `compre_data`, the dataset is also projected on these vectors,
-# in such a way to obtain data reduction. This is a simple scalar product
+# In the function `compress_data`, the dataset is also projected on these vectors,
+# in such a way to obtain data reduction. This is a simple scalar product:
 #%%
 
 X_df_drop_reduced = compress_data(X_dataset=X_scaled_drop_data,
@@ -946,35 +958,58 @@ plot
 #%%
 X_df_reduced.head(4)
 
+#%% [markdown]
+#
+# We will try now to use a scatte-plot to show if a clustering algorithm applied
+# on the first two principal components is able to separate the samples in two clusters.
+# 
+# PCA tries to find combinations of features that lead to maximum separation between data points. 
+# What this means is that, if we had a dimension in our dataset which was the same for all members, 
+# then that would not be considered, alone or in combination, among the top principal components. 
+
+# Only the features that vary a lot from data point to data point form a part of the top principal components. 
+# As a result, the points should appear to be quite far apart from each other on the plot.
+# 
+# The plot of the PCA clusters may not make sense in a cuple of conditions:
+#
+# 1. There is a lot of variance in the dataset, so the first two components
+# cannot significantly represent the data
+# 2. The clustering algorithm focuses on features considered unimportant by the 
+# PCA.
+#
+# Our dataset should not have that much variance, so the clustering
+# algorithm should be able to decently separate data in two clusters.
+#
 #%% 
-'''
-N=pre_data.values
+
+values = pre_data.values
 pca = PCA(n_components=2)
-x = pca.fit_transform(N)
+x = pca.fit_transform(values)
 
 kmeans = KMeans(n_clusters=2, random_state=RANDOM_SEED)
-X_clustered = kmeans.fit_predict(N)
+X_clustered = kmeans.fit_predict(values)
+
 print(len(np.where(X_clustered == 0)[0]))
 print(len(np.where(X_clustered == 1)[0]))
 
-ed_idx = np.where(X_clustered == 0)
-po_idx = np.where(X_clustered == 1)
+c1_idx = np.where(X_clustered == 0)
+c2_idx = np.where(X_clustered == 1)
 
 p1 = go.Scatter(
-    x=np.take(x[:,0], indices=ed_idx)[0],
-    y=np.take(x[:,1], indices=ed_idx)[0],
+    x=np.take(x[:,0], indices=c1_idx)[0],
+    y=np.take(x[:,1], indices=c1_idx)[0],
     mode='markers',
-    name="Edible",
+    name="Cluster1",
     marker=dict(
         color=PLOTLY_COLORS[0],
     ),
     opacity=PLOTLY_OPACITY)
 
 p2 = go.Scatter(
-    x=np.take(x[:,0], indices=po_idx)[0],
-    y=np.take(x[:,1], indices=po_idx)[0],
+    x=np.take(x[:,0], indices=c2_idx)[0],
+    y=np.take(x[:,1], indices=c2_idx)[0],
     mode='markers',
-    name="Poisonous",
+    name="Cluster2",
     marker=dict(
         color=PLOTLY_COLORS[1],
     ),
@@ -1000,10 +1035,9 @@ layout = go.Layout(
 )
 fig = go.Figure(data=data, layout=layout)
 iplot(fig, filename='clusters-scatter')
-'''
 #%% [markdown]
-
-# Using K-means we are able to separate two classes using the two components with maximum variance.
+# As expected, using K-means we are able to separate two groups of data using the two components with maximum variance.
+#
 #%% [markdown]
 # <a id='classification'></a>
 ## Classification
@@ -1516,13 +1550,15 @@ time_table.field_names = dataset_strings
 time_table.add_row(time_row)
 time_table.add_row(mean_row)
 print(time_table)
+
+#%%
   
 print("The dataset that gives the best overall performances is:")
 print("\t- " + dataset_strings[means.argmax()] + ", with a score of " + str("%.3f" % means.max()))
 
 #%% [markdown]
-# As we can see, the most accurate is the dataset encoded with OneHotEncoder; The training time though is really high 
-# with respect to the other datasets. A good tradeoff could be using the full dataset, because the accuracy is high and the
+# As we can see, the most accurate is the dataset encoded with `OneHotEncoder`; The training time though, is really high 
+# with respect to the other datasets. A good trade-off could be using the full dataset, because the accuracy is high and the
 # training time is reasonable. 
 #
 # But considering that the scores obtained are achieved without parameter tuning, I prefer to choose a "faster" dataset, even if the scores
@@ -1541,21 +1577,19 @@ print("\t- " + dataset_strings[means.argmax()] + ", with a score of " + str("%.3
 # 
 # This model, with respect to linear regression, can model better the zone close to 
 # 0 and 1. To learn the weights, the $MLE$ is found and then the gradient descent algorithm 
-# is applied until the accuracy converges
+# is applied until the accuracy converges.
 #
 # They are:
-# - `liblinear` for solver, which is better for smaller datasets
-# - `C` regularization strength, ranging from 0.01 to 100. A smaller value inidicates stronger regularization, like in svms.
-# - `penalty` "l1" and "l2" penalty for regularization, which are defined as:
+# - `liblinear`. Solver, which is better for smaller datasets
+# - `C`. Regularization strength, ranging from 0.01 to 100. A smaller value inidicates stronger regularization, like in svms.
+# - `penalty`. "l1" and "l2" penalty for regularization, which are defined as:
 #   - l1, it penalizes every mistake at the same way
-#     $$ 
-#     S = \Sigma_{i=1}^{n}{|y_i - f(x_i)|}
-#     $$
+#       - $S = \Sigma_{i=1}^{n}{|y_i - f(x_i)|}$
+#    
 #   - l2, it penalizes bigger values
-#     $$ 
-#     S = \Sigma_{i=1}^{n}{(y_i - f(x_i))^2}
-#     $$
-#     - Where $y_i$ is the true label and $f(x_i)$ is the assigned label
+#       - $S = \Sigma_{i=1}^{n}{(y_i - f(x_i))^2}$
+#  
+#   - Where $y_i$ is the true label and $f(x_i)$ is the assigned label.
 
 #%%
 
@@ -1595,7 +1629,7 @@ print_confusion_matrix(gs_pc_lr, X_test_pc, y_test_pc)
 # classified correctly.
 # - `rbf`. This parameter indicates that we are using a radial basis function kernel to perform the 
 # scalar product. 
-#   - `gamma` parameter defines how far the influence of a single training example reaches, 
+#   - `gamma`. Defines how far the influence of a single training example reaches, 
 # with low values meaning ‘far’ and high values meaning ‘close’.
 
 #%%
@@ -1612,7 +1646,7 @@ plot_learning_curve(gs_pc_svm.best_estimator_, "Learning curve of SVM",
 #%% [markdown]
 # We can see from the learning curve that we can achieve optimal performances
 # before running out of training samples. After approximately 1300 samples analyzed,
-# we already achieve a test score greater than 0.99 with very standard deviation.
+# we already achieve a test score greater than 0.99 with very low standard deviation.
 # 
 # This is the best score possibly achievable.
 # We could expect it, but we will print anyway the confusion matrix:
@@ -1620,25 +1654,19 @@ plot_learning_curve(gs_pc_svm.best_estimator_, "Learning curve of SVM",
 
 #%%
 print_confusion_matrix(gs_pc_svm, X_test_pc, y_test_pc)
-#%% [markdown]
-# We can notice that most of the times, the only mistakes are poisonous mushrooms classified as edible. 
-# These mistakes weight must be much higher with respect to an edible mushroom classified as 
-# poisonous, because there is not any danger in that case.
-
 
 #%% [markdown]
 
 # ### Naive Bayes Classifier
 # The naive bayes classifier is based on the Bayes theorem, which states that:
 #
-# $$
-# P(A|B) = \frac{P(B|A)P(A)}{P(B)}
-# $$
+# - $P(A|B) = \frac{P(B|A)P(A)}{P(B)}$
 #
-# Where
+# Where:
 # - $P(A)$, the prior, is the initial degree of belief in A.
 # - $P(A|B)$, the posterior is the degree of belief having accounted for B.
 # - $P(B|A$), is the likelyhood, the degree of belief in B, given that A is true.
+#
 #
 # Using Bayes theorem, we can find the probability of A happening, 
 # given that B has occurred. Here, B is the evidence and A is the hypothesis. The assumption made 
@@ -1660,10 +1688,14 @@ plot_learning_curve(clf_nb, "Learning curve of GaussianNB",
 
 #%% [markdown]
 # To be a really simple classifier, it can achieve decent results. The independecy assumption
-# does not work perfectly, because the different features are not completely independent from 
+# does not work perfectly, because the different features are never completely independent from 
 # each other, but nevertheless it manages to achieve a good accuracy even if we used only 
-# the data projected on the principal components. With the naive bayes classifier, it is alway 
-# better to use the original datasets, beign really fast itself to train and to classify.
+# the data projected on the principal components. 
+# 
+# With the naive bayes classifier, it is always 
+# better to use the original dataset, being really fast itself to train and to classify samples.
+# With the ohc dataset, if we look in the upper table, we achieve a score around 0.945, which is 
+# a great score given our big assumption.
 
 
 #%% [markdown]
@@ -1694,7 +1726,7 @@ plot_learning_curve(gs_pc_rf.best_estimator_, "Learning curve of Random Forest C
 
 #%% [markdown]
 # The training time is pretty high, but the accuracy as well. Now let's look 
-# deeper into the features of the random forest classifier; let's see which of them weights more
+# deeper into the features of the Random Forest Classifier; let's see which of them weights more
 # on the classification.
 #%%
 feature_importance = np.array(  sorted(zip(X_train_pc.columns, 
@@ -1926,24 +1958,17 @@ feat_edible
 #%%
 feat_poisonous = grouped.get_group(1)[col_importance].sum()
 feat_poisonous
-'''
-#%%
-n_samples = pre_ohc_data.shape[0]
-total = 0.0
-for n_ed, n_pos in zip(feat_edible, feat_poisonous):
-    cum = ((n_pos)/(n_ed + n_pos)) * ((n_ed + n_pos)/n_samples)
-    total = total + cum - total * cum
 
-print(total)
-'''
 #%% [markdown]
 # <a class="anchor-link" href="#conclusions">¶</a>
 # ## Conclusions
 # Our goal was to predict if a mushroom was poisonous or edible from its features.
 #  
-# We understood that they are well separated and our classifiers can anchieve optimal performances. 
+# We understood that they are well separated and our classifiers can anchieve optimal performances.
+#  
 # 
 # ![](https://infovisual.info/storage/app/media/01/img_en/024%20Mushroom.jpg)
+#
 #
 # Looking at the KNN score using the different values for features, we understood that you should 
 # not eat a mushroom if it has:
