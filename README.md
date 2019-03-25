@@ -23,3 +23,7 @@ In the first phase I performed different steps to prepare data for the other pha
     - SVM 
     - Random Forest 
     - Logistic Regression
+
+
+Feel free to fork the notebook and to improve it! Just insert a reference to the original 
+If you liked the work, just leave a star. :sparkles:
