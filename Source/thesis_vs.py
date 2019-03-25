@@ -1937,7 +1937,7 @@ for n_ed, n_pos in zip(feat_edible, feat_poisonous):
 print(total)
 '''
 #%% [markdown]
-# <a id='conclusions'></a>
+# <a class="anchor-link" href="#conclusions">¶</a>
 # ## Conclusions
 # Our goal was to predict if a mushroom was poisonous or edible from its features.
 #  
