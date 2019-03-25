@@ -1725,8 +1725,13 @@ plot_learning_curve(gs_pc_rf.best_estimator_, "Learning curve of Random Forest C
                     cv=5)
 
 #%% [markdown]
-# The training time is pretty high, but the accuracy as well. Now let's look 
-# deeper into the features of the Random Forest Classifier; let's see which of them weights more
+# The training time is pretty high, but the accuracy as well. Looking at the learning curve, we can notice that
+# the test error approaches the training error, but at a certain point starts to decrease. Analyzing over 1000 samples the 
+# accuracy does not improve any further. This may be due to some overfitting effect. A method to improve the accuracy could 
+# be using some additional regularization techniques, using for example `LightGMB` library to better fine-tune
+# additional parameter. 
+# 
+# Now let's look deeper into the features of the Random Forest Classifier; let's see which of them weights more
 # on the classification.
 #%%
 feature_importance = np.array(  sorted(zip(X_train_pc.columns, 
