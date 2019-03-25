@@ -27,4 +27,4 @@ In the first phase I performed different steps to prepare data for the other pha
 
 Feel free to fork the notebook and to improve it! Just insert a reference to the original.
 
-If you liked the work, just leave a star. :sparkles:
+If you liked the work, just leave a star! Thank you :sparkles:
