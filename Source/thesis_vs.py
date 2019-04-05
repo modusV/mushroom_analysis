@@ -1595,7 +1595,9 @@ clf_knn = KNeighborsClassifier()
 clf_rf = RandomForestClassifier(random_state=RANDOM_SEED)
 clf_lr = LogisticRegression(random_state=RANDOM_SEED)
 clf_svm = SVC(random_state=RANDOM_SEED)
+
 clfs = [clf_nb, clf_knn, clf_rf, clf_lr, clf_svm]
+clfs_ng = [clf_nb, clf_rf]
 TEST_PARAMS = {}
 
 #%% [markdown]
@@ -1603,80 +1605,92 @@ TEST_PARAMS = {}
 #%%
 all_test_results = []
 all_gss = []
-times = np.zeros(7)
+times = np.zeros(2)
 t = 0
-      
-for clf in clfs:
 
-  gs_full, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train, y_train, kf, execution_time=True)
-  times[0] = times[0] + float(t)
+for clf in clfs:
+    gs_ohc_pc, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_ohc_pc, y_train_ohc_pc, kf, execution_time=True)
+    times[0] = times[0] + float(t)
+
+    gs_ohc, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_ohc, y_train_ohc, kf, execution_time=True)
+    times[1] = times[1] + float(t)
+
+    gss = [gs_ohc_pc, gs_ohc]
+    all_gss.append(gss)
+    test_results = score(gss, [(X_test_ohc_pc, y_test_ohc_pc),
+                                (X_test_ohc, y_test_ohc)])
+    all_test_results.append(test_results)
+
+all_test_results_ng = []
+all_gss_ng = []
+times_ng = np.zeros(3)
+
+for clf in clfs_ng:
+    gs_full, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train, y_train, kf, execution_time=True)
+    times_ng[0] = times_ng[0] + float(t)
   
-  gs_pc, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_pc, y_train_pc, kf, execution_time=True)
-  times[1] = times[1] + float(t)
+    #gs_pc, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_pc, y_train_pc, kf, execution_time=True)
+    #times[1] = times[1] + float(t)
   
-  gs_drop, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_drop, y_train_drop, kf, execution_time=True)
-  times[2] = times[2] + float(t)
+    gs_drop, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_drop, y_train_drop, kf, execution_time=True)
+    times_ng[1] = times_ng[1] + float(t)
   
-  gs_pc_drop, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_pc_drop, y_train_pc_drop, kf, execution_time=True)
-  times[3] = times[3] + float(t)
+    #gs_pc_drop, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_pc_drop, y_train_pc_drop, kf, execution_time=True)
+    #times[3] = times[3] + float(t)
   
-  gs_no_stalk, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_no_stalk, y_train_no_stalk, kf, execution_time=True)
-  times[4] = times[4] + float(t)
-  
-  gs_ohc_pc, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_ohc_pc, y_train_ohc_pc, kf, execution_time=True)
-  times[5] = times[5] + float(t)
-  
-  gs_ohc, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_ohc, y_train_ohc, kf, execution_time=True)
-  times[6] = times[6] + float(t)
-  
-  
-  gss = [gs_full, gs_pc, gs_drop, gs_pc_drop, gs_no_stalk, gs_ohc_pc, gs_ohc]
-  all_gss.append(gss)
-  test_results = score(gss, [(X_test, y_test), 
-                             (X_test_pc, y_test_pc), 
-                             (X_test_drop, y_test_drop), 
-                             (X_test_pc_drop, y_test_pc_drop),
-                             (X_test_no_stalk, y_test_no_stalk),
-                             (X_test_ohc_pc, y_test_ohc_pc),
-                             (X_test_ohc, y_test_ohc)])
-  all_test_results.append(test_results)
+    gs_no_stalk, t = param_tune_grid_cv(clf, TEST_PARAMS, X_train_no_stalk, y_train_no_stalk, kf, execution_time=True)
+    times_ng[2] = times_ng[2] + float(t)
+
+    gss_ng = [gs_full, gs_drop, gs_no_stalk]
+    all_gss_ng.append(gss_ng)
+    test_results = score(gss_ng, [(X_test, y_test),
+                                  (X_test_drop, y_test_drop),
+                                  (X_no_stalk, y_no_stalk)])
+    all_test_results_ng.append(test_results)
 
 #%% [markdown]
 # This is the score of the different classifiers on the different datasets.
 
 #%%
-dataset_strings = [" ", "full dataset", 
-                   "dataset reduced on first 9 PC", 
-                   "dataset with dropped missing values",
-                   "dataset with dropped missing value reduced with first 9 PC",
-                   "dataset with stalk-root field dropped",
+
+def print_results(column_names, row_names, values):
+    t = PrettyTable()
+    t.field_names = column_names
+    
+    all_rows = []
+    result_row = []
+
+    for name, results in zip(row_names, values):
+        result_row.append(name)
+        for r in results:
+            result_row.append("%.3f" % r)
+        all_rows.append(result_row)
+        result_row = []
+
+    all_rows = sorted(all_rows, key=lambda kv: kv[1], reverse=True)
+    for k in all_rows:
+        t.add_row(k)
+    
+    print(t)
+
+
+dataset_strings = [" ",
                    "dataset ohc reduced on first 20 PC",
                    "dataset ohc"]
 
+dataset_strings_ng = [" ", "full dataset",
+                      "dataset with dropped missing values",
+                      "dataset with stalk-root field dropped"]
+
 row_names = ["Naive Bayes", "KNN", "Random Forest", "Logistic Regression", "SVM"]
+row_names_ng = ["Naive Bayes", "Random Forest"]
 
-t = PrettyTable()
-t.field_names = dataset_strings
+print_results(dataset_strings, row_names, all_test_results)
+print_results(dataset_strings_ng, row_names_ng, all_test_results_ng)
 
-all_rows = []
-result_row = []
-
-for name, results in zip(row_names, all_test_results):
-  result_row.append(name)
-  for r in results:
-    result_row.append("%.3f" % r)
-  all_rows.append(result_row)
-  result_row = []
- 
-all_rows = sorted(all_rows, key=lambda kv: kv[1], reverse=True)
-
-for k in all_rows:
-    t.add_row(k)
-    
-print(t)
 
 #%% [markdown]
-# Looking at the table we can notice that the Naive Bayes classifier performed very poorly on the dataset where we dropped 
+# Looking at the second table we can notice that the Naive Bayes classifier performed very poorly on the dataset where we dropped 
 # the rows containing the missing values. If we look deeper in its confusion matrix, we can notice that
 # almost all edible mushrooms are classified correcly, while almost all of the poisonous ones are misclassified. This 
 # happens because the probability of finding an edible sample is much higher than the one of finding a 
@@ -1684,7 +1698,7 @@ print(t)
 # this problem, we should apply some over/under sampling methods (or a combination of them), such as
 # SMOTE or RandomOver(Under)Sampler. 
 #%%
-print_confusion_matrix(all_gss[0][np.argmin(all_test_results[0])], X_test_drop, y_test_drop)
+print_confusion_matrix(all_gss_ng[0][np.argmin(all_test_results_ng[0])], X_test_drop, y_test_drop)
 
 #%% [markdown]
 # After have evaluated all the above results, we are going to select the one that have the best tradeoff
@@ -1692,16 +1706,14 @@ print_confusion_matrix(all_gss[0][np.argmin(all_test_results[0])], X_test_drop, 
 # the different classifiers with respect to the same dataset.
 
 #%%
-
 means = np.mean(all_test_results, axis=0)
-  
-time_table = PrettyTable()
-time_row = ["Total train time (s)"] + np.ndarray.tolist(times)
-mean_row = ["Mean score for dataset"] + np.ndarray.tolist(means)
-time_table.field_names = dataset_strings
-time_table.add_row(time_row)
-time_table.add_row(mean_row)
-print(time_table)
+row_names = ["Total train time (s)", "Mean score for dataset"]
+print_results(dataset_strings, row_names, [times, means])
+
+#%%
+
+means_ng = np.mean(all_test_results_ng, axis=0)
+print_results(dataset_strings_ng, row_names, [times_ng, means_ng])
 
 #%%
   
@@ -1746,13 +1758,13 @@ print("\t- " + dataset_strings[means.argmax()] + ", with a score of " + str("%.3
 #%%
 
 clf_lr = LogisticRegression(random_state=RANDOM_SEED)
-gs_pc_lr = param_tune_grid_cv(clf_lr, LOGISTIC_REGRESSION_PARAMS, X_train_pc, y_train_pc, kf)
+gs_pc_lr = param_tune_grid_cv(clf_lr, LOGISTIC_REGRESSION_PARAMS, X_train_ohc_pc, y_train_ohc_pc, kf)
 print_gridcv_scores(gs_pc_lr, n=5)
 
 #%%
 plot_learning_curve(gs_pc_lr.best_estimator_, "Learning curve of Logistic Regression", 
-                    X_train_pc,
-                    y_train_pc,
+                    X_train_ohc_pc,
+                    y_train_ohc_pc,
                     cv=5)
 
 #%% [markdown]
@@ -1764,7 +1776,7 @@ plot_learning_curve(gs_pc_lr.best_estimator_, "Learning curve of Logistic Regres
 #%% [markdown]
 # From the learning curve we can see that, at the beginning 
 #%%
-print_confusion_matrix(gs_pc_lr, X_test_pc, y_test_pc)
+print_confusion_matrix(gs_pc_lr, X_test_ohc_pc, y_test_ohc_pc)
 
 #%% [markdown]
 # ### Support vector machine
@@ -1786,13 +1798,13 @@ print_confusion_matrix(gs_pc_lr, X_test_pc, y_test_pc)
 
 #%%
 clf_svm = SVC(probability=True, random_state=RANDOM_SEED)
-gs_pc_svm = param_tune_grid_cv(clf_svm, SVM_PARAMS, X_train_pc, y_train_pc, kf)
+gs_pc_svm = param_tune_grid_cv(clf_svm, SVM_PARAMS, X_train_ohc_pc, y_train_ohc_pc, kf)
 print_gridcv_scores(gs_pc_svm, n=5)
 
 #%%
 plot_learning_curve(gs_pc_svm.best_estimator_, "Learning curve of SVM", 
-                    X_train_pc,
-                    y_train_pc,
+                    X_train_ohc_pc,
+                    y_train_ohc_pc,
                     cv=5)
 
 #%% [markdown]
@@ -1805,7 +1817,7 @@ plot_learning_curve(gs_pc_svm.best_estimator_, "Learning curve of SVM",
 # 
 
 #%%
-print_confusion_matrix(gs_pc_svm, X_test_pc, y_test_pc)
+print_confusion_matrix(gs_pc_svm, X_test_ohc_pc, y_test_ohc_pc)
 
 #%% [markdown]
 
@@ -1827,15 +1839,15 @@ print_confusion_matrix(gs_pc_svm, X_test_pc, y_test_pc)
 
 #%%
 clf_nb = GaussianNB()
-gs_pc_nb = param_tune_grid_cv(clf_nb, TEST_PARAMS, X_train_pc, y_train_pc, kf)
+gs_pc_nb = param_tune_grid_cv(clf_nb, TEST_PARAMS, X_train_ohc_pc, y_train_ohc_pc, kf)
 print_gridcv_scores(gs_pc_nb, n=5)
 
-print_confusion_matrix(gs_pc_nb, X_test_pc, y_test_pc)
+print_confusion_matrix(gs_pc_nb, X_test_ohc_pc, y_test_ohc_pc)
 
 #%%
 plot_learning_curve(clf_nb, "Learning curve of GaussianNB", 
-                    X_train, 
-                    y_train, 
+                    X_train_ohc_pc, 
+                    y_train_ohc_pc, 
                     cv=5)
 
 #%% [markdown]
@@ -1864,16 +1876,16 @@ plot_learning_curve(clf_nb, "Learning curve of GaussianNB",
 #%%
 
 clf_pc_rf = RandomForestClassifier(random_state=RANDOM_SEED)
-gs_pc_rf = param_tune_grid_cv(clf_pc_rf, RANDOM_FOREST_PARAMS, X_train_pc, y_train_pc, kf)
+gs_pc_rf = param_tune_grid_cv(clf_pc_rf, RANDOM_FOREST_PARAMS, X_train_ohc_pc, y_train_ohc_pc, kf)
 print_gridcv_scores(gs_pc_rf, n = 5)
 
 #%%
-print_confusion_matrix(gs_pc_rf, X_test_pc, y_test_pc)
+print_confusion_matrix(gs_pc_rf, X_test_ohc_pc, y_test_ohc_pc)
 
 #%%
 plot_learning_curve(gs_pc_rf.best_estimator_, "Learning curve of Random Forest Classifier", 
-                    X_train_pc,
-                    y_train_pc,
+                    X_train_ohc_pc,
+                    y_train_ohc_pc,
                     cv=5)
 
 #%% [markdown]
@@ -1886,7 +1898,7 @@ plot_learning_curve(gs_pc_rf.best_estimator_, "Learning curve of Random Forest C
 # Now let's look deeper into the features of the Random Forest Classifier; let's see which of them weights more
 # on the classification.
 #%%
-feature_importance = np.array(  sorted(zip(X_train_pc.columns, 
+feature_importance = np.array(  sorted(zip(X_train_ohc_pc.columns, 
                                 gs_pc_rf.best_estimator_.named_steps['clf'].feature_importances_),
                                 key=lambda x: x[1], reverse=True))
 plot_feature_importance(feature_importance, "Feature importance in the random forest")
@@ -1936,17 +1948,17 @@ plot_feature_importance(feature_importance, "Feature importance in the random fo
 #%%
 
 clf_knn = KNeighborsClassifier()
-gs_knn = param_tune_grid_cv(clf_knn, KNN_PARAMS, X_train_pc, y_train_pc, kf)
+gs_knn = param_tune_grid_cv(clf_knn, KNN_PARAMS, X_train_ohc_pc, y_train_ohc_pc, kf)
 print_gridcv_scores(gs_knn, n=5)
 
 #%%
-print_confusion_matrix(gs_knn, X_train_pc, y_train_pc)
+print_confusion_matrix(gs_knn, X_train_ohc_pc, y_train_ohc_pc)
 
 #%%
 
 plot_learning_curve(gs_knn.best_estimator_, "Learning curve of k-NN Classifier", 
-                    X_train_pc,
-                    y_train_pc,
+                    X_train_ohc_pc,
+                    y_train_ohc_pc,
                     cv=5)
 
 
@@ -2042,7 +2054,7 @@ def plot_roc_curve(classifiers, legend, title, X_test, y_test):
 
 classifiers = [gs_pc_lr, gs_pc_svm, gs_pc_nb, gs_pc_rf, gs_knn]
 classifier_names = ["Logistic Regression", "SVM", "GaussianNB", "Random Forest", "KNN"]
-auc_scores, roc_plot = plot_roc_curve(classifiers, classifier_names, "ROC curve", X_test_pc, y_test_pc)
+auc_scores, roc_plot = plot_roc_curve(classifiers, classifier_names, "ROC curve", X_test_ohc_pc, y_test_ohc_pc)
 roc_plot
 
 #%% [markdown]
@@ -2057,7 +2069,7 @@ roc_plot
 #       - $F1= 2*\frac{P * R}{P + R}$
 # 5. Auc, area under the ROC curve
 #%%
-print_performances(classifiers, classifier_names, auc_scores, X_test_pc, y_test_pc)
+print_performances(classifiers, classifier_names, auc_scores, X_test_ohc_pc, y_test_ohc_pc)
 
 #%% [markdown]
 # The table shows that overall all classifiers performed well. The naive Bayes classifier
