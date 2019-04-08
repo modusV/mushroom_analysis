@@ -505,22 +505,45 @@ pre_data.describe()
 # *plotly.py* is an interactive, open-source, and browser-based graphing library for Python, which allows you to create interactive plots in a few steps.
 
 #%%
-data = [go.Bar(
-            x=class_dict,
-            y=y,
-            marker=dict(
-            color=PLOTLY_COLORS),
-            opacity=PLOTLY_OPACITY,
-    )]
 
-layout = go.Layout(title="Class distribution",
-                   autosize=True,
-                   yaxis=dict(
-                        title='N. samples',
-                    ),
-                   )
-fig = go.Figure(data=data, layout=layout)
-py.iplot(fig, filename='distribution-bar')
+def create_bar(type, data, col, visible=False):
+    if type == "edible":
+        c = PLOTLY_COLORS[0]
+    else:
+        c = PLOTLY_COLORS[1]
+    return go.Histogram(
+        x = data[col],
+        name = type,
+        marker=dict(color = c),
+        visible=visible,
+        opacity=PLOTLY_OPACITY,
+    )
+
+def feature_histogram(data, feature):
+    
+    trace1 = create_bar("edible", data[data['class'] == 'e'], feature, True)
+    trace2 = create_bar("poisonous", data[data['class'] == 'p'], feature, True)
+
+    data = [trace1, trace2]
+
+    layout = dict(
+        autosize=True,
+        yaxis=dict(
+            title='value',
+            automargin=True,
+        ),
+        legend=dict(
+            x=0,
+            y=1,
+        ),
+        barmode='group',
+        bargap=0.15,
+        bargroupgap=0.1
+    )
+    fig = dict(data=data, layout=layout)
+    return py.iplot(fig, filename='bar_slider')
+#%%
+feature_histogram(dataset, "class")
 
 #%% [markdown]
 # #### 6 - Box plot
@@ -627,20 +650,8 @@ py.iplot(fig, filename='box_slider')
 # 
 # A bar chart or bar graph is a chart or graph that presents categorical data with rectangular bars with heights or lengths proportional to the values that they represent.
 # With a slider we can move along the different features, to better visualize the value distributions.
-#%%
 
-def create_bar(type, data, col, visible=False):
-    if type == "edible":
-        c = PLOTLY_COLORS[0]
-    else:
-        c = PLOTLY_COLORS[1]
-    return go.Histogram(
-        x = data[col],
-        name = type,
-        marker=dict(color = c),
-        visible=visible,
-        opacity=PLOTLY_OPACITY,
-    )
+#%%
 
 hist_features = [col for col in pre_data.columns if (col != 'class')]
 
@@ -734,16 +745,15 @@ py.iplot(fig, filename='bar_slider')
 # - $\sigma_Y$ is the standard deviation of Y
 #   - $\sigma_Y^2 = E[Y^2] - [E[Y]]^2$
 
-
 #%%
 
-def plot_correlation_matrix(dataset, matrix):
+def plot_correlation_matrix(matrix):
 
     z_text = np.around(matrix.values.tolist(), decimals=2)
 
     figure = ff.create_annotated_heatmap(z=matrix.values, 
-                                         x=dataset.columns.tolist(), 
-                                         y=dataset.columns.tolist(),
+                                         x=matrix.columns.tolist(), 
+                                         y=matrix.index.tolist(),
                                          annotation_text=z_text,
                                          colorscale=COLORSCALE_HEATMAP,
                                          showscale=True)
@@ -761,10 +771,33 @@ def plot_correlation_matrix(dataset, matrix):
                                     
     return py.iplot(figure, filename='labelled-heatmap4')
 
+def plot_correlation_row(matrix, key):
+    
+    matrix = pd.Series.to_frame(matrix.loc['class']).transpose()
+    z_text = np.around(matrix.values.tolist(), decimals=2)
+
+    figure = ff.create_annotated_heatmap(z=matrix.values, 
+                                         x=matrix.columns.tolist(), 
+                                         y=matrix.index.tolist(),
+                                         annotation_text=z_text,
+                                         colorscale=COLORSCALE_HEATMAP,
+                                         showscale=False)
+
+    figure.layout.title = "Heatmap of " + key + " correlation"
+    figure.layout.autosize = False
+    figure.layout.width = 850
+    figure.layout.height = 220
+    figure.layout.xaxis.update(side='bottom')
+    figure.layout.yaxis.update(side='left')
+
+    for i in range(len(figure.layout.annotations)):
+        figure.layout.annotations[i].font.size = 8
+                                    
+    return py.iplot(figure, filename='labelled-heatmap4')
 #%%
 
 correlation_matrix = pre_data.corr(method='pearson')
-plot_correlation_matrix(pre_data, correlation_matrix)
+plot_correlation_matrix(correlation_matrix)
 #%% [markdown]
 # But wait, does this really makes sense? Didn't we see form the boxplot that the odor
 # was very important to determine the class? Here it doesn't seem so ...
@@ -845,16 +878,64 @@ def create_theil_matrix(data):
     return matrix
 
 corr_dataset = create_theil_matrix(pre_data)
-plot_correlation_matrix(dataset, corr_dataset)
+plot_correlation_matrix(corr_dataset)
 
 #%% [markdown]
 # Now we can see that the `odor` is highly correlated with the class, as we expected.
 # The `gill-color` and `spore-print-color` are also quite correlated to our label field.
 #
 # We can also notice that `gill-attachment` is highly correlate with three other features;
-# maybe we can reduce dimensionality losing a few information. Let's use the dendogram representation
-# to further analyze this aspect.
+# maybe we can reduce dimensionality losing a few information.
+#
+#
+# Being the `odor` highly correlated with the class, we can see how many mushrooms are we able to classify 
+# just by smelling them. 
 
+#%%
+plot_correlation_row(corr_dataset, "class")
+
+#%%
+feature_histogram(dataset, "odor")
+
+#%% [markdown]
+# Looking at the bar chart above, if it has an odor (different from `n`, which means none) 
+# and it is not `a` or `l`, then it is edible!
+# But what about the mushrooms that have no odor? Let's do the same trick, but with the mushrooms with
+# no `odor`.
+
+#%%
+no_odor = dataset[dataset["odor"] == "n"]
+corr_data_no_odor = create_theil_matrix(no_odor)
+plot_correlation_row(corr_data_no_odor, "class")
+#%% [markdown]
+# Now the most helpful feature is `spore-print-color`! Let's look at the 
+# value distribution in this case:
+
+#%%
+feature_histogram(no_odor, "spore-print-color")
+
+#%% [markdown]
+# We can easily see that only mushrooms with a `w` spore print color 
+# may leave us in doubt. Wonderful, let's count what percentage of the dataset we have 
+# classified in this simple way:
+
+#%%
+no_odor_w = no_odor[no_odor["spore-print-color"] == "w"]
+print("We can determine the class of: %.2f%% mushrooms\n" % ((len(dataset.index) - len(no_odor_w.index))/len(dataset.index)))
+
+#%% [markdown]
+# To sum up, we can determine the class of 92% of our dataset in an easy way.
+# If you are alone in a forest, you can safely eat mushrooms with almond or anise smell;
+# If it has no smell, you can look at their `spore-print-color`;
+# you can savour every one of them apart from the ones with a red print, which are certainly poisonous, and 
+# the ones with a white print (0,08% probability of being poisonous, but you need to take into account 
+# the probability of finding one on that kind in nature).
+#
+#
+# After this point, to be 100% sure of the class of a mushroom, we request the help of 
+# classification models.
+# The last step before the automatic classification, will be to plot a dendogram,
+# to see if we can further reduce the dimension of the dataset.
 #%% [markdown]
 # ### 7 - Dendogram
 # A **dendrogram** is a diagram representing a tree. This diagrammatic representation is frequently used in different contexts, but we will see the case representing hierarchical clustering. 
