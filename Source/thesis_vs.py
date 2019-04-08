@@ -849,7 +849,7 @@ plot_correlation_matrix(dataset, corr_dataset)
 
 #%% [markdown]
 # Now we can see that the `odor` is highly correlated with the class, as we expected.
-# The `gill-color` and `spore-print-color`are also quite correlated to our label field.
+# The `gill-color` and `spore-print-color` are also quite correlated to our label field.
 #
 # We can also notice that `gill-attachment` is highly correlate with three other features;
 # maybe we can reduce dimensionality losing a few information. Let's use the dendogram representation
@@ -1120,6 +1120,7 @@ X_df_ohc_reduced.head(4)
 # 2. The clustering algorithm focuses on features considered unimportant by the 
 # PCA.
 #
+#
 # Our dataset should not have that much variance, so the clustering
 # algorithm should be able to decently separate data.
 #
@@ -1195,6 +1196,7 @@ iplot(fig, filename='clusters-scatter')
 # 3. Dataset Label Encoded with column containing missing values removed 
 # 4. Dataset One Hot Encoded
 # 5. Dataset One Hot Encoded compressed using PCA
+#
 #
 # Our dataset is pretty balanced, so we do not strictly need any over or under-sampling technique.
 # Let's start with splitting the datasets in train and test.
@@ -1773,6 +1775,8 @@ plot_learning_curve(gs_pc_lr.best_estimator_, "Learning curve of Logistic Regres
 # tends to the train score. In this case, from the graph is evident that adding more
 # samples is useless; we have more than enough, but the model is not complex enough to 
 # anchieve higher scores.
+#
+# In any case, we achieved a 0.02 improvement with the tuning of the Logistic Regressor parameters.
 
 #%% [markdown]
 # From the learning curve we can see that, at the beginning 
@@ -1811,7 +1815,7 @@ plot_learning_curve(gs_pc_svm.best_estimator_, "Learning curve of SVM",
 #%% [markdown]
 # We can see from the learning curve that we can achieve optimal performances
 # before running out of training samples. After approximately 1300 samples analyzed,
-# we already achieve a test score greater than 0.99 with very low standard deviation.
+# we already achieve a test score around than 0.99 with very low standard deviation.
 # 
 # This is the best score possibly achievable.
 # We could expect it, but we will print anyway the confusion matrix:
@@ -1890,13 +1894,14 @@ plot_learning_curve(gs_pc_rf.best_estimator_, "Learning curve of Random Forest C
                     cv=5)
 
 #%% [markdown]
-# The training time is pretty high, but the accuracy as well. Looking at the learning curve, we can notice that
-# the test error approaches the training error, but at a certain point starts to decrease. Analyzing over 1000 samples the 
-# accuracy does not improve any further. This may be due to some overfitting effect. A method to improve the accuracy could 
-# be using some additional regularization techniques, using for example `LightGMB` library to better fine-tune
-# additional parameter. 
+# The training time is pretty high, but the accuracy as well. Looking at the learning curve we can notice that
+# the test score steadly increases, approaching the training score, but it does not manage to reach it. 
+# In this case, if we had more training samples, we could possibly achieve a better performance.
+#
+# Similarly to the case of the Naive Bayes Classifier, also in this case it is better to use the original dataset 
+# with a simpler encoding, as we can see from the score achieved with it compared to this one. 
 # 
-# Now let's look deeper into the features of the Random Forest Classifier; let's see which of them weights more
+# Now let's look deeper into the features of the Random Forest Classifier; let's see which of them weight more
 # on the classification.
 #%%
 feature_importance = np.array(  sorted(zip(X_train_ohc_pc.columns, 
@@ -1916,12 +1921,6 @@ plot_feature_importance(feature_importance, "Feature importance in the random fo
 # continuous variables that best separate the categories we want to classify. That is not exactly 
 # the same as finding orthogonal linear combinations of continuous variables that give the direction 
 # of greatest variance. 
-#
-# If we would use the full dataset, we would see that the most important features are:
-#
-# 1. `bruises`
-# 2. `gill-size`
-# 3. `gill-spacing`
 
 #%% [markdown]
 # ### K-Nearest Neighbors Classifier
@@ -1965,8 +1964,9 @@ plot_learning_curve(gs_knn.best_estimator_, "Learning curve of k-NN Classifier",
 
 #%% [markdown]
 # The accuracy achieved is really high.
-# The K-NN classification with the whole dataset gives the same result but it takes more than 
-# 7 times more time
+# The K-NN classification with the whole dataset gives almost the same result but it takes a lot more time.
+# If we look at the curves, also here the test score steadily increased;
+# if we had more training samples, we could probably achieve the score of 1.
 
 #%% [markdown]
 # ### ROC curve
@@ -2073,13 +2073,13 @@ roc_plot
 print_performances(classifiers, classifier_names, auc_scores, X_test_ohc_pc, y_test_ohc_pc)
 
 #%% [markdown]
-# The table shows that overall all classifiers performed well. The naive Bayes classifier
-# is the one that performed worse, being the simplest one of them. Another reason is because
-# we used the reduced dataset in classification; due to the fact that it is really fast, 
-# with the naive bayes is better to use the whole dataset. Infact 
+# The table shows that overall all classifiers performed well. The Logistic Regression Classifier
+# is the one that performed worse, even worse than the Naive Bayes Classifier, which is the simplest one of them. 
+# The NB, being really fast, gives better results in a very short time with the whole dataset. Infact 
 # the one OneHotEncoded anchieves a really high score, namely 0,945 (see score table in the choice
 # of the dataset phase).
-# The SVM and the K-NN are the classifiers that achieved the best score, hitting the 1 value on every parameter.
+# The SVM is the classifier that achieved the best score, hitting the 1 value on every parameter, while the
+# k-NN almost reaches that score due to the shortage of training samples.
 # The the Random Forest classifier achieved a similar score, even if slightly 
 # worse in accuracy and in recall.
 #%% [markdown]
