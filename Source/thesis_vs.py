@@ -1690,10 +1690,10 @@ print_results(dataset_strings_ng, row_names_ng, all_test_results_ng)
 
 
 #%% [markdown]
-# Looking at the second table we can notice that the Naive Bayes classifier performed very poorly on the dataset where we dropped 
-# the rows containing the missing values. If we look deeper in its confusion matrix, we can notice that
-# almost all edible mushrooms are classified correcly, while almost all of the poisonous ones are misclassified. This 
-# happens because the probability of finding an edible sample is much higher than the one of finding a 
+# Looking at the second table we can notice that the Naive Bayes classifier performed very poorly on the 
+# dataset where we dropped the rows containing the missing values. If we look deeper in its confusion matrix, 
+# we can notice that almost all edible mushrooms are classified correcly, while almost all of the poisonous ones are 
+# misclassified. This happens because the probability of finding an edible sample is much higher than the one of finding a 
 # poisonous one, and the classifies picks almost always the edible class due to this reason. To address
 # this problem, we should apply some over/under sampling methods (or a combination of them), such as
 # SMOTE or RandomOver(Under)Sampler. 
@@ -1721,14 +1721,15 @@ print("The dataset that gives the best overall performances is:")
 print("\t- " + dataset_strings[means.argmax()] + ", with a score of " + str("%.3f" % means.max()))
 
 #%% [markdown]
-# As we can see, the most accurate is the dataset encoded with `OneHotEncoder`; The training time though, is really high 
-# with respect to the other datasets. A good trade-off could be using the full dataset, because the accuracy is high and the
-# training time is reasonable. 
+# As we can see, the most accurate on average is the dataset encoded with `OneHotEncoder`; The training time though, is really high 
+# with respect to the other datasets. 
+# If we look carefully, we achieve an optimal score using the Random Forest Classifier on the full dataset, without any parameter 
+# tuning, in a short time. This indicates that the dataset is easily classified, even without the use of more complicated methods.
 #
-# But considering that the scores obtained are achieved without parameter tuning, I prefer to choose a "faster" dataset, even if the scores
-# are not already optimal. 
-# From this point on, the classifiers will be tested on the full dataset with PCA. This because the cross-validation phase
-# is almost four times faster, and the scores are similar.
+# For demonstrative purposes, for now on we will use the dataset One Hot Encoded, but the compressed version, to 
+# see how the accuracy can improve by means of parameter tuning in a reasonable time. 
+# This dataset allows us to use all the classification models mentioned above.
+
 
 #%% [markdown]
 # ### Logistic Regression
