@@ -197,7 +197,9 @@ def watcher(func):
 
 #%%
 # Load the dataset
+# Comment this line if you are working on colab
 dataset = pd.read_csv("./Input/mushrooms.csv")
+# Uncomment if you are working on colab
 # dataset = pd.read_csv("./mushrooms.csv")
 
 #%%
@@ -794,10 +796,13 @@ def plot_correlation_row(matrix, key):
         figure.layout.annotations[i].font.size = 8
                                     
     return py.iplot(figure, filename='labelled-heatmap4')
+
 #%%
 
 correlation_matrix = pre_data.corr(method='pearson')
 plot_correlation_matrix(correlation_matrix)
+#%%
+correlation_matrix.index.tolist()
 #%% [markdown]
 # But wait, does this really makes sense? Didn't we see form the boxplot that the odor
 # was very important to determine the class? Here it doesn't seem so ...
@@ -877,6 +882,7 @@ def create_theil_matrix(data):
                  index=columns)
     return matrix
 
+#%%
 corr_dataset = create_theil_matrix(pre_data)
 plot_correlation_matrix(corr_dataset)
 
@@ -899,7 +905,7 @@ feature_histogram(dataset, "odor")
 
 #%% [markdown]
 # Looking at the bar chart above, if it has an odor (different from `n`, which means none) 
-# and it is not `a` or `l`, then it is edible!
+# and it is `a` or `l`, then it is edible!
 # But what about the mushrooms that have no odor? Let's do the same trick, but with the mushrooms with
 # no `odor`.
 
@@ -2163,79 +2169,24 @@ print_performances(classifiers, classifier_names, auc_scores, X_test_ohc_pc, y_t
 # k-NN almost reaches that score due to the shortage of training samples.
 # The the Random Forest classifier achieved a similar score, even if slightly 
 # worse in accuracy and in recall.
-#%% [markdown]
-
-# ## What NOT to do in the woods
-#
-# To have a little bit more fun we will try one more thing.
-# If we are in a wood, how can we survive without the help of an SVM? 
-# Let's find out what are the peculiar traits of a poisonous mushroom 
-#
-# Firstly, we create a KNN classifier and we iterate on all the columns,
-# to see which of them gives a more accurate classification; 
-# In this way we can see which ones are the most important charateristics to
-# classify a mushroom.
-
-#%%
-
-n_features = pre_ohc_data.shape[1]
-clf = KNeighborsClassifier()
-feature_score = []
-t = PrettyTable()
-t.field_names = ["Feature", "Score"]
-
-for i in range(n_features):
-    X_feature= np.reshape(pre_ohc_data.iloc[:,i:i+1],-1,1) # One column at a time
-    scores = cross_val_score(clf, X_feature, y_data)
-    feature_score.append(scores.mean())
-    t.add_row([pre_ohc_data.columns[i], "{0:0.4f}".format(scores.mean())])
-
-print(t)
-
-#%% [markdown]
-# Let's now select all the features that are more significant; we will 
-# pick the ones with a score greater than 0.7
-#%%
-
-f_importance = pd.Series(data = feature_score, index = pre_ohc_data.columns)
-f_importance.sort_values(ascending=False, inplace=True)
-f_importance[f_importance > 0.7]
-
-#%% [markdown]
-# Now we merge the unlabelled dataset with the labels, in such a way that
-# we can group our samples using the class.
-
-#%%
-
-col_importance = f_importance[f_importance>0.7].index.values
-pre_ohc_Xy = pd.concat([pre_ohc_data, pd.DataFrame(y_data, columns=['class'])], axis=1)
-grouped = pre_ohc_Xy.groupby('class')
-
-#%%
-feat_edible = grouped.get_group(0)[col_importance].sum()
-feat_edible
-#%%
-feat_poisonous = grouped.get_group(1)[col_importance].sum()
-feat_poisonous
 
 #%% [markdown]
 # <a class="anchor-link" href="#conclusions">¶</a>
 # ## Conclusions
 # Our goal was to predict if a mushroom was poisonous or edible from its features.
-#  
 # We understood that they are well separated and our classifiers can anchieve optimal performances.
 #  
 # 
 # ![](https://infovisual.info/storage/app/media/01/img_en/024%20Mushroom.jpg)
 #
 #
-# Looking at the KNN score using the different values for features, we understood that you should 
-# not eat a mushroom if it has:
+# Looking at the previous analysis based on the correlation matrix, we understood that in the woods without an SVM,
+# you can eat a mushroom if:
 #
-# 1. fishy odor
-# 2. stalk surface above ring silky
-# 3. stalk surface below ring silky
-# 4. gill size narrow
-# 5. spore print color chocolatey
+# - Its smell is anise or almond.
+# - If it has no smell, look at the spore color:
+#   - If it is red do NOT eat it.
+#   - If it white, do not eat it if you have decent probabilities of surviving.
+#   - In any other case, it will be a good garnish for your pasta.
 
 #%%
