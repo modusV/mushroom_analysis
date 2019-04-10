@@ -883,7 +883,7 @@ def create_theil_matrix(data):
     return matrix
 
 #%%
-corr_dataset = create_theil_matrix(pre_data)
+corr_dataset = create_theil_matrix(dataset)
 plot_correlation_matrix(corr_dataset)
 
 #%% [markdown]
@@ -1034,9 +1034,10 @@ def scale_data(X_data):
 # Before dropping the samples containing a missing value, we will check how many of them belong to a class or to the other;
 # we perform this step because it is possible that we unintentionally remove most of the samples from one of the two classes
 # creating some sort of imbalance within the data.
+
 #%%
-edible_removed = np.sum(dataset[dataset['stalk-root'] == "?"]['class'] == 'e')
-poisonous_removed = np.sum(dataset[dataset['stalk-root'] == "?"]['class'] == 'p')
+edible_removed = np.sum(dataset[dataset['stalk-root'] == "m"]['class'] == 'e')
+poisonous_removed = np.sum(dataset[dataset['stalk-root'] == "m"]['class'] == 'p')
 print("Will be removed:\n"
       f"\t- {edible_removed} edible samples\n"
       f"\t- {poisonous_removed} poisonous samples")
