@@ -801,8 +801,8 @@ def plot_correlation_row(matrix, key):
 
 correlation_matrix = pre_data.corr(method='pearson')
 plot_correlation_matrix(correlation_matrix)
-#%%
-correlation_matrix.index.tolist()
+
+
 #%% [markdown]
 # But wait, does this really makes sense? Didn't we see form the boxplot that the odor
 # was very important to determine the class? Here it doesn't seem so ...
