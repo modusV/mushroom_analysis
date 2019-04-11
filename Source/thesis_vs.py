@@ -170,7 +170,7 @@ from prettytable import PrettyTable
 from functools import wraps
 import time
 
-plotly.tools.set_credentials_file(username='XXXXXX', api_key='XXXXXXXXXXXX')
+plotly.tools.set_credentials_file(username='XXXXXXX', api_key='XXXXXXXXXX')
 warnings.filterwarnings("ignore")
 
 #%% [markdown]
@@ -899,9 +899,6 @@ plot_correlation_matrix(corr_dataset, "Theil_u correlation matrix")
 # just by smelling them. 
 
 #%%
-plot_correlation_row(corr_dataset, "Class correlation")
-
-#%%
 feature_histogram(dataset, "odor", "Odor value distribution")
 
 #%% [markdown]
@@ -1119,7 +1116,6 @@ def plot_cumulative_variance(pca, title):
         ))
     data = [cum_var_bar, variance_line]
     layout = go.Layout(
-        title='Individual and Cumulative Explained Variance',
         autosize=True,
         title=title,
         yaxis=dict(
@@ -1138,7 +1134,7 @@ def plot_cumulative_variance(pca, title):
     fig = go.Figure(data=data, layout=layout)
     return iplot(fig, filename=title)
 
-def compress_data(X_dataset, n_components, plot_comp=False):
+def compress_data(X_dataset, n_components, plot_comp=False, graph_title=''):
     
     """
     Performs pca reduction of a dataset.
@@ -1156,7 +1152,7 @@ def compress_data(X_dataset, n_components, plot_comp=False):
     projected_data = pca.fit_transform(X_dataset)
 
     if plot_comp:
-        p = plot_cumulative_variance(pca)
+        p = plot_cumulative_variance(pca, graph_title)
 
     pca.components_ = pca.components_[:n_components]
     reduced_data = np.dot(projected_data, pca.components_.T)
@@ -1169,7 +1165,8 @@ def compress_data(X_dataset, n_components, plot_comp=False):
 #%%
 plot, X_df_ohc_reduced = compress_data(X_dataset=pre_ohc_data,
               n_components=20,
-              plot_comp=True)
+              plot_comp=True,
+              graph_title='Individual and Cumulative Explained Variance')
 plot
 #%% [markdown]
 # We can see that on those many components, some of them can be excluded. From the graph we can see that the first 20 
