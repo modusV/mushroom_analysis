@@ -170,25 +170,8 @@ from prettytable import PrettyTable
 from functools import wraps
 import time
 
-plotly.tools.set_credentials_file(username='modusV', api_key='R8hqiaiaxOXvVkwIcXFU')
+plotly.tools.set_credentials_file(username='XXXXXX', api_key='XXXXXXXXXXXX')
 warnings.filterwarnings("ignore")
-#%%
-
-# Wrapper to calculate functions speed
-
-def watcher(func):
-    """
-    Shows how much time it
-    takes to execute function
-    """
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        start = time.perf_counter()
-        result = func(*args, **kwargs)
-        end = time.perf_counter()
-        print(f" ===> took {end-start} seconds")
-        return result
-    return wrapper
 
 #%% [markdown]
 # <a id='dsl'></a>
@@ -420,18 +403,24 @@ pre_data.head(5)
 # the model will misunderstand the data to be in some kind of order, 0 < 1 < 2. 
 # But this isn’t the case at all. To overcome this problem, we use `OneHotEncoder`.
 #
-# What one hot encoding does is, it takes a column which has categorical data, 
+# What One Hot Encoding does is, it takes a column which has categorical data, 
 # which has been label encoded, and then splits the column into multiple columns. 
 # The numbers are replaced by 1s and 0s, depending on which column has what value.
 # 
 # We will obtain two datasets; the one Label Encoded contains values that have no 
-# geometrical interpretation (we cannot use classified based on distances such as kNN).
+# geometrical interpretation (we cannot use classified based on distances such as k-NN).
 # The other one, on the other hand, will be bigger but with more data significance.
 #
 # We also drop the column with missing value, beacuse it is not significative.
 #%%
 
 def one_hot_encode(X_dataset):
+
+    """
+    Encodes a dataset using One Hot Encoder
+
+    :param (array of arrays) X_dataset: dataset to be encoded
+    """
 
     ohc = defaultdict(OneHotEncoder)
     d = defaultdict (LabelEncoder)
@@ -485,7 +474,7 @@ class_dict = ["edible", "poisonous"]
 # We have almost the same amount of samples in a class and in the other; this simplifies the analysis because we can assign the same weight to the two classes in the classification phase.
 # 
 # Moreover, we can notice that the classification task will be binary. Infact, data have been transformed, and now the labels are represented with a 0/1 integer value. 
-# Now we can look deeper into some statistical details about the dataset, using the `pre_df.describe()` command on our pandas DataFrame dataset. The output shows:
+# Now we can look deeper into some statistical details about the dataset, using the `describe()` method on our pandas DataFrame dataset. The output shows:
 # 
 # - count: number of samples (rows)
 # - mean: the mean of the attribute among all samples
@@ -500,11 +489,13 @@ class_dict = ["edible", "poisonous"]
 pre_data.describe()
 
 #%% [markdown]
-# This is the class distribution plot on a graph bar. As we already saw before the class distribution is pretty balanced. 
+# Now we will look at the class distribution on a graph bar. As we already saw before the 
+# dataset is pretty balanced. 
 # 
 # In this report, all the graphic part will use the `plotly` library. 
 # 
-# *plotly.py* is an interactive, open-source, and browser-based graphing library for Python, which allows you to create interactive plots in a few steps.
+# *plotly.py* is an interactive, open-source, and browser-based graphing library for Python, 
+# which allows you to create interactive plots in a few steps.
 
 #%%
 
@@ -521,14 +512,23 @@ def create_bar(type, data, col, visible=False):
         opacity=PLOTLY_OPACITY,
     )
 
-def feature_histogram(data, feature):
+def feature_histogram(data, feature, title):
     
+    """
+    Prints the bar graph of value distribution for one feature
+
+    :param (dataframe) data: dataset
+    :param (string) feature: feature we want to display
+    :param (string) title: title of the graph
+    """
+
     trace1 = create_bar("edible", data[data['class'] == 'e'], feature, True)
     trace2 = create_bar("poisonous", data[data['class'] == 'p'], feature, True)
 
     data = [trace1, trace2]
 
     layout = dict(
+        title=title,
         autosize=True,
         yaxis=dict(
             title='value',
@@ -543,9 +543,10 @@ def feature_histogram(data, feature):
         bargroupgap=0.1
     )
     fig = dict(data=data, layout=layout)
-    return py.iplot(fig, filename='bar_slider')
+
+    return py.iplot(fig, filename=title)
 #%%
-feature_histogram(dataset, "class")
+feature_histogram(dataset, "class", "Class distribution")
 
 #%% [markdown]
 # #### 6 - Box plot
@@ -561,7 +562,7 @@ feature_histogram(dataset, "class")
 # - **first quartile** (Q1/25th Percentile): the middle number between the smallest number (not the “minimum”) and the median of the dataset.
 # - **third quartile** (Q3/75th Percentile): the middle value between the median and the highest value (not the “maximum”) of the dataset.
 # - **interquartile range** (IQR): 25th to the 75th percentile.
-# - **outliers** (shown as green circles)
+# - **outliers** (shown as small points)
 # - **maximum**: Q3 + 1.5*IQR
 # - **minimum**: Q1 -1.5*IQR
 #
@@ -749,7 +750,7 @@ py.iplot(fig, filename='bar_slider')
 
 #%%
 
-def plot_correlation_matrix(matrix):
+def plot_correlation_matrix(matrix, title):
 
     z_text = np.around(matrix.values.tolist(), decimals=2)
 
@@ -760,7 +761,7 @@ def plot_correlation_matrix(matrix):
                                          colorscale=COLORSCALE_HEATMAP,
                                          showscale=True)
 
-    figure.layout.title = 'Heatmap of columns correlation'
+    figure.layout.title = title
     figure.layout.autosize = False
     figure.layout.width = 850
     figure.layout.height = 850
@@ -771,9 +772,9 @@ def plot_correlation_matrix(matrix):
     for i in range(len(figure.layout.annotations)):
         figure.layout.annotations[i].font.size = 8
                                     
-    return py.iplot(figure, filename='labelled-heatmap4')
+    return py.iplot(figure, filename=title)
 
-def plot_correlation_row(matrix, key):
+def plot_correlation_row(matrix, title):
     
     matrix = pd.Series.to_frame(matrix.loc['class']).transpose()
     z_text = np.around(matrix.values.tolist(), decimals=2)
@@ -785,7 +786,7 @@ def plot_correlation_row(matrix, key):
                                          colorscale=COLORSCALE_HEATMAP,
                                          showscale=False)
 
-    figure.layout.title = "Heatmap of " + key + " correlation"
+    figure.layout.title = title
     figure.layout.autosize = False
     figure.layout.width = 850
     figure.layout.height = 220
@@ -794,13 +795,14 @@ def plot_correlation_row(matrix, key):
 
     for i in range(len(figure.layout.annotations)):
         figure.layout.annotations[i].font.size = 8
-                                    
-    return py.iplot(figure, filename='labelled-heatmap4')
+
+
+    return py.iplot(figure, filename=title)
 
 #%%
 
 correlation_matrix = pre_data.corr(method='pearson')
-plot_correlation_matrix(correlation_matrix)
+plot_correlation_matrix(correlation_matrix, "Correlation matrix")
 
 
 #%% [markdown]
@@ -836,7 +838,6 @@ plot_correlation_matrix(correlation_matrix)
 #   - $H(X) = -\Sigma_x{P_X(x) logP_X(x)}$
 #   - $H(X|Y) = -\Sigma_{x, y}{P_{X,Y}(x, y) log{P_{X,Y}(x, y)}}$
 #
-
 #%%
 
 def conditional_entropy(x, y):
@@ -884,13 +885,13 @@ def create_theil_matrix(data):
 
 #%%
 corr_dataset = create_theil_matrix(dataset)
-plot_correlation_matrix(corr_dataset)
+plot_correlation_matrix(corr_dataset, "Theil_u correlation matrix")
 
 #%% [markdown]
 # Now we can see that the `odor` is highly correlated with the class, as we expected.
 # The `gill-color` and `spore-print-color` are also quite correlated to our label field.
 #
-# We can also notice that `gill-attachment` is highly correlate with three other features;
+# We can also notice that `gill-attachment` is highly correlated with three other features;
 # maybe we can reduce dimensionality losing a few information.
 #
 #
@@ -898,10 +899,10 @@ plot_correlation_matrix(corr_dataset)
 # just by smelling them. 
 
 #%%
-plot_correlation_row(corr_dataset, "class")
+plot_correlation_row(corr_dataset, "Class correlation")
 
 #%%
-feature_histogram(dataset, "odor")
+feature_histogram(dataset, "odor", "Odor value distribution")
 
 #%% [markdown]
 # Looking at the bar chart above, if it has an odor (different from `n`, which means none) 
@@ -912,13 +913,13 @@ feature_histogram(dataset, "odor")
 #%%
 no_odor = dataset[dataset["odor"] == "n"]
 corr_data_no_odor = create_theil_matrix(no_odor)
-plot_correlation_row(corr_data_no_odor, "class")
+plot_correlation_row(corr_data_no_odor, "Class correlation without odor")
 #%% [markdown]
 # Now the most helpful feature is `spore-print-color`! Let's look at the 
 # value distribution in this case:
 
 #%%
-feature_histogram(no_odor, "spore-print-color")
+feature_histogram(no_odor, "spore-print-color", "Spore print color value distribution")
 
 #%% [markdown]
 # We can easily see that only mushrooms with a `w` spore print color 
@@ -989,7 +990,7 @@ iplot(fig, filename='dendrogram_corr_clustering')
 # only take in the magnitude of features neglecting the units. The results would vary greatly 
 # between different units, for example between 5kg and 5000gms. 
 # 
-# The features with high magnitudes will weigh in a lot more in the 
+# The features with high magnitudes will weight in a lot more in the 
 # distance calculations than features with low magnitudes.
 # To supress this effect, we need to bring all features to the same level of magnitudes. 
 # This can be acheived by scaling.
@@ -1012,7 +1013,7 @@ iplot(fig, filename='dendrogram_corr_clustering')
 # 1. The full dataset Label Encoded, where the missing values are encoded with an integer.
 # 2. A reduced version of the dataset, where the rows with missing data are considered as 
 #   incomplete samples and are dropped.
-# 3. The full dataset Label Encoded, with `stalk-root`field dropped.
+# 3. The full dataset Label Encoded, with `stalk-root` field dropped.
 # 4. The dataset One Hot Encoded
 #%%
 
@@ -1082,11 +1083,12 @@ X_scaled_ohc = scale_data(pre_ohc_data)
 #
 # Let's calculate the Principal Components and show their retained variance on a bar graph.
 #%% 
-def plot_cumulative_variance(pca):
+def plot_cumulative_variance(pca, title):
     """
     Plots cumulative variance of all PC
 
     :param (pca object) pca: Pca object
+    :param (string) pca: Title of the plot
     """   
 
     tot_var = np.sum(pca.explained_variance_)
@@ -1119,6 +1121,7 @@ def plot_cumulative_variance(pca):
     layout = go.Layout(
         title='Individual and Cumulative Explained Variance',
         autosize=True,
+        title=title,
         yaxis=dict(
             title='Explained variance (%)',
         ),
@@ -1133,7 +1136,7 @@ def plot_cumulative_variance(pca):
         ),
     )
     fig = go.Figure(data=data, layout=layout)
-    return iplot(fig, filename='basic-bar')
+    return iplot(fig, filename=title)
 
 def compress_data(X_dataset, n_components, plot_comp=False):
     
@@ -1163,18 +1166,6 @@ def compress_data(X_dataset, n_components, plot_comp=False):
     else:
         return X_df_reduced
     
-#%%
-'''
-plot, X_df_reduced = compress_data(X_dataset=X_scaled_data,
-                             n_components=9,
-                             plot_comp=True)
-plot                       
-
-
-X_df_drop_reduced = compress_data(X_dataset=X_scaled_drop_data,
-                                  n_components=9,
-                                  plot_comp=False)
-'''
 #%%
 plot, X_df_ohc_reduced = compress_data(X_dataset=pre_ohc_data,
               n_components=20,
@@ -1298,10 +1289,6 @@ X_train_no_stalk, X_test_no_stalk, y_train_no_stalk, y_test_no_stalk = train_tes
 X_train_ohc_pc, X_test_ohc_pc, y_train_ohc_pc, y_test_ohc_pc = train_test_split(X_df_ohc_reduced, y_data, test_size=0.2, random_state=RANDOM_SEED)
 X_train_ohc, X_test_ohc, y_train_ohc, y_test_ohc = train_test_split(pre_ohc_data, y_data, test_size=0.2, random_state=RANDOM_SEED)
 
-'''
-train_pc_drop, X_test_pc_drop, y_train_pc_drop, y_test_pc_drop = train_test_split(X_df_drop_reduced, y_drop_data, test_size=0.2, random_state=RANDOM_SEED)
-X_train_pc, X_test_pc, y_train_pc, y_test_pc = train_test_split(X_df_reduced, y_data, test_size=0.2, random_state=RANDOM_SEED)
-'''
 #%% [markdown]
 # We will apply different classification models on our datasets without any tuning of the parameters. In this way we can 
 # see which datasets gives an overall efficient tradeoff between accuracy and time.
@@ -1744,6 +1731,14 @@ for clf in clfs_ng:
 #%%
 
 def print_results(column_names, row_names, values):
+    """
+    Function that prints a table using prettytable library
+    
+    :param (array) column_names: Array of column names
+    :param (array) row_names: Array of row names
+    :param (matrix) values: Values of the table
+
+    """ 
     t = PrettyTable()
     t.field_names = column_names
     
@@ -1783,10 +1778,17 @@ print_results(dataset_strings_ng, row_names_ng, all_test_results_ng)
 # Looking at the second table we can notice that the Naive Bayes classifier performed very poorly on the 
 # dataset where we dropped the rows containing the missing values. If we look deeper in its confusion matrix, 
 # we can notice that almost all edible mushrooms are classified correcly, while almost all of the poisonous ones are 
-# misclassified. This happens because the probability of finding an edible sample is much higher than the one of finding a 
-# poisonous one, and the classifies picks almost always the edible class due to this reason. To address
-# this problem, we should apply some over/under sampling methods (or a combination of them), such as
-# SMOTE or RandomOver(Under)Sampler. 
+# misclassified. 
+#
+# This happens because the probability of finding an edible sample is much higher than the one of finding a 
+# poisonous one, and the classifies picks almost always the edible class due to this reason. 
+#
+# To address this problem, we should apply some over/under sampling methods (or a combination of them), such as
+# SMOTE or RandomOver(Under)Sampler; in this analysis we decide not use that dataset anyway, because the full one 
+# achieves a really good score in a small amount of time.
+#
+# The dataset where that field was dropped, performs poorly, so we are going to 
+# discard it.
 #%%
 print_confusion_matrix(all_gss_ng[0][np.argmin(all_test_results_ng[0])], X_test_drop, y_test_drop)
 
@@ -1905,7 +1907,7 @@ plot_learning_curve(gs_pc_svm.best_estimator_, "Learning curve of SVM",
 # before running out of training samples. After approximately 1300 samples analyzed,
 # we already achieve a test score around than 0.99 with very low standard deviation.
 # 
-# This is the best score possibly achievable.
+# Tuning our parameters, we went from 0.873 to the best score possibly achievable.
 # We could expect it, but we will print anyway the confusion matrix:
 # 
 
@@ -1920,9 +1922,9 @@ print_confusion_matrix(gs_pc_svm, X_test_ohc_pc, y_test_ohc_pc)
 # - $P(A|B) = \frac{P(B|A)P(A)}{P(B)}$
 #
 # Where:
-# - $P(A)$, the prior, is the initial degree of belief in A.
-# - $P(A|B)$, the posterior is the degree of belief having accounted for B.
-# - $P(B|A$), is the likelyhood, the degree of belief in B, given that A is true.
+#   - $P(A)$, the prior, is the initial degree of belief in A.
+#   - $P(A|B)$, the posterior is the degree of belief having accounted for B.
+#   - $P(B|A$), is the likelyhood, the degree of belief in B, given that A is true.
 #
 #
 # Using Bayes theorem, we can find the probability of A happening, 
@@ -1992,9 +1994,9 @@ plot_learning_curve(gs_pc_rf.best_estimator_, "Learning curve of Random Forest C
 # Now let's look deeper into the features of the Random Forest Classifier; let's see which of them weight more
 # on the classification.
 #%%
-feature_importance = np.array(  sorted(zip(X_train_ohc_pc.columns, 
-                                gs_pc_rf.best_estimator_.named_steps['clf'].feature_importances_),
-                                key=lambda x: x[1], reverse=True))
+feature_importance = np.array(sorted(zip(X_train_ohc_pc.columns, 
+                              gs_pc_rf.best_estimator_.named_steps['clf'].feature_importances_),
+                              key=lambda x: x[1], reverse=True))
 plot_feature_importance(feature_importance, "Feature importance in the random forest")
 
 #%% [markdown]
@@ -2012,9 +2014,9 @@ plot_feature_importance(feature_importance, "Feature importance in the random fo
 
 #%% [markdown]
 # ### K-Nearest Neighbors Classifier
-# K-NN is a type of instance-based learning, or lazy learning, where the function 
+# k-NN is a type of instance-based learning, or lazy learning, where the function 
 # is only approximated locally and all computation is deferred until classification. 
-# The K-NN algorithm is among the simplest of all machine learning algorithms.
+# The k-NN algorithm is among the simplest of all machine learning algorithms.
 # 
 # The training phase of the algorithm consists only of storing the feature vectors 
 # and class labels of the training samples. In the classification phase, K is a user-defined constant, 
@@ -2052,7 +2054,7 @@ plot_learning_curve(gs_knn.best_estimator_, "Learning curve of k-NN Classifier",
 
 #%% [markdown]
 # The accuracy achieved is really high.
-# The K-NN classification with the whole dataset gives almost the same result but it takes a lot more time.
+# The k-NN classification with the whole dataset gives almost the same result but it takes a lot more time.
 # If we look at the curves, also here the test score steadily increased;
 # if we had more training samples, we could probably achieve the score of 1.
 
