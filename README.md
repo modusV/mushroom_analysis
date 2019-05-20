@@ -2,6 +2,7 @@
 Data analysis of https://www.kaggle.com/uciml/mushroom-classification for the Data Spaces course at
 Polytechnic of Turin.
 
+# Description
 
 ## Preprocessing
 In the first phase I performed different steps to prepare data for the other phases:
@@ -25,7 +26,22 @@ In the first phase I performed different steps to prepare data for the other pha
     - Random Forest 
     - Logistic Regression
 
+# Usage
+  
+If your are running the notebook locally/on remote jupyter server:
+
+  - Clone the repository
+  - Download the dataset from kaggle's website (link above)
+  - Enter your *plotly* username and api_key (you can find it in your profile section in plotly)
+  - Run and enjoy!
+  
+If you are running the notebook on google colab:
+
+  - uncomment the *Code snippet for google colab* section
+  - upload your kaggle.json file (you can download it from your profile section in kaggle
+  - In the *load the dataset* part follow comments innstructions and comment out the dataset load command
+  - Run and enjoy!
+
 
 Feel free to fork the notebook and to improve it! Just insert a reference to the original.
-
 If you liked the work, just leave a star! Thank you :sparkles:
