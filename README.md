@@ -2,7 +2,6 @@
 Data analysis of https://www.kaggle.com/uciml/mushroom-classification for the Data Spaces course at
 Polytechnic of Turin.
 
-Viewable at https://nbviewer.jupyter.org/github/modusV/mushroom_analysis/blob/master/Source/mushrooms_analysis.ipynb
 
 ## Preprocessing
 In the first phase I performed different steps to prepare data for the other phases:
