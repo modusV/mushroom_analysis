@@ -2,6 +2,8 @@
 Data analysis of https://www.kaggle.com/uciml/mushroom-classification for the Data Spaces course at
 Polytechnic of Turin.
 
+Notebook with output viewable at https://colab.research.google.com/drive/19ZdQ7dduPIvG0k5F607FTLf_vkhQdp37
+
 # Description
 
 ## Preprocessing
